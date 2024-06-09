@@ -64,6 +64,10 @@ class KFX_EPUB_Notebook(object):
         nmdl_canvas_width = section.pop("nmdl.canvas_width")
         nmdl_canvas_height = section.pop("nmdl.canvas_height")
         nmdl_normalized_ppi = section.pop("nmdl.normalized_ppi")
+        if "nmdl.template_id" in section:
+            nmdl_template_id = section.pop("nmdl.template_id")
+        else:
+            nmdl_template_id = self.nmdl_template_id
 
         if (nmdl_canvas_width, nmdl_canvas_height, nmdl_normalized_ppi) not in [
                 (15624, 20832, 2520),
@@ -73,6 +77,7 @@ class KFX_EPUB_Notebook(object):
 
         book_part = self.new_book_part(filename=self.NOTEBOOK_TEXT_FILEPATH % section_name)
         book_part.is_fxl = True
+        book_part.nmdl_template_id = nmdl_template_id
         add_meta_name_content(book_part.head(), "viewport", "width=%d, height=%d" % (
             nmdl_canvas_width, nmdl_canvas_height))
 
@@ -138,20 +143,19 @@ class KFX_EPUB_Notebook(object):
                 self.manifest_resource(template_svg_filename, data=svg_data)
                 book_part.omit = True
 
-                if section_name == self.nmdl_template_id:
-                    for page_book_part in self.book_parts:
-                        if page_book_part is not book_part:
-                            html_svg_elem = page_book_part.body().find(SVG)
-                            if html_svg_elem is not None:
-                                if len(html_svg_elem) == 3:
-                                    log.error("SVG image already has template in Scribe notebook page: %s" % page_book_part.filename)
-                                    html_svg_elem.remove(html_svg_elem[1])
+                for page_book_part in self.book_parts:
+                    if not page_book_part.omit and page_book_part.nmdl_template_id == section_name:
+                        html_svg_elem = page_book_part.body().find(SVG)
+                        if html_svg_elem is not None:
+                            if len(html_svg_elem) == 3:
+                                log.error("SVG image already has template in Scribe notebook page: %s" % page_book_part.filename)
+                                html_svg_elem.remove(html_svg_elem[1])
 
-                                html_svg_elem.insert(1, etree.Element("image", attrib={
-                                    "x": "0", "y": "0", "width": "100%", "height": "100%",
-                                    XLINK_HREF: urlrelpath(template_svg_filename, ref_from=book_part.filename)}))
-                            else:
-                                log.error("Failed to locate the SVG image within Scribe notebook page: %s" % page_book_part.filename)
+                            html_svg_elem.insert(1, etree.Element("image", attrib={
+                                "x": "0", "y": "0", "width": "100%", "height": "100%",
+                                XLINK_HREF: urlrelpath(template_svg_filename, ref_from=book_part.filename)}))
+                        else:
+                            log.error("Failed to locate the SVG image within Scribe notebook page: %s" % page_book_part.filename)
             else:
                 log.error("Failed to locate the SVG image within Scribe notebook template: %s" % book_part.filename)
 
