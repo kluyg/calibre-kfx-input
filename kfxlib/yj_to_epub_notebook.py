@@ -64,10 +64,6 @@ class KFX_EPUB_Notebook(object):
         nmdl_canvas_width = section.pop("nmdl.canvas_width")
         nmdl_canvas_height = section.pop("nmdl.canvas_height")
         nmdl_normalized_ppi = section.pop("nmdl.normalized_ppi")
-        if "nmdl.template_id" in section:
-            nmdl_template_id = section.pop("nmdl.template_id")
-        else:
-            nmdl_template_id = self.nmdl_template_id
 
         if (nmdl_canvas_width, nmdl_canvas_height, nmdl_normalized_ppi) not in [
                 (15624, 20832, 2520),
@@ -77,7 +73,15 @@ class KFX_EPUB_Notebook(object):
 
         book_part = self.new_book_part(filename=self.NOTEBOOK_TEXT_FILEPATH % section_name)
         book_part.is_fxl = True
-        book_part.nmdl_template_id = nmdl_template_id
+
+        book_part.nmdl_template_id = section.pop("nmdl.template_id", self.nmdl_template_id)
+        if book_part.nmdl_template_id is not None and book_part.nmdl_template_id != "$349" and (
+                len(self.reading_orders) != 2 or
+                self.reading_orders[1].get("$178", "") != "note_template_collection" or
+                book_part.nmdl_template_id not in self.reading_orders[1]["$170"]):
+            log.error("note_template_collection reading order does not contain nmdl.template_id %s used in section %s" % (
+                book_part.nmdl_template_id, section_name))
+
         add_meta_name_content(book_part.head(), "viewport", "width=%d, height=%d" % (
             nmdl_canvas_width, nmdl_canvas_height))
 
@@ -144,7 +148,7 @@ class KFX_EPUB_Notebook(object):
                 book_part.omit = True
 
                 for page_book_part in self.book_parts:
-                    if not page_book_part.omit and page_book_part.nmdl_template_id == section_name:
+                    if page_book_part.nmdl_template_id == section_name:
                         html_svg_elem = page_book_part.body().find(SVG)
                         if html_svg_elem is not None:
                             if len(html_svg_elem) == 3:

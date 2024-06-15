@@ -91,12 +91,6 @@ class KFX_EPUB_Metadata(object):
         self.reading_orders = document_data.pop("$169", [])
 
         self.nmdl_template_id = document_data.pop("nmdl.template_id", None)
-        if self.nmdl_template_id is not None and (
-                len(self.reading_orders) != 2 or
-                self.reading_orders[1].get("$178", "") != "note_template_collection" or
-                self.nmdl_template_id not in self.reading_orders[1]["$170"]):
-            log.error("note_template_collection reading order does not contain nmdl.template_id %s" % self.nmdl_template_id)
-            log.info("reading orders: %s" % repr(self.reading_orders))
 
         if "max_id" in document_data:
             max_id = document_data.pop("max_id")

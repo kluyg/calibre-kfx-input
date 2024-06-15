@@ -166,6 +166,7 @@ class BookPart(OPFProperties):
         self.idref = idref
 
         self.is_cover_page = False
+        self.nmdl_template_id = None
 
     def head(self):
         head = self.html.find("head")
