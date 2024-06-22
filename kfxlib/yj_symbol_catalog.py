@@ -857,5 +857,6 @@ YJ_SYMBOLS = IonSharedSymbolTable(
         "$831?",
         "$832?",
         "$833?",
+        "$834?",
     ],
     )

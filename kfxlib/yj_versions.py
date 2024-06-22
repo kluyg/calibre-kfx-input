@@ -173,6 +173,7 @@ KNOWN_FEATURES = {
             831,
             832,
             833,
+            834,
             },
         },
 
@@ -378,6 +379,7 @@ KNOWN_FEATURES = {
 
         "yj_publisher_panels": {
             2,
+            3,
             },
 
         "yj_rotated_pages": {

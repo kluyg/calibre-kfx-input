@@ -61,6 +61,7 @@ for k, v in FORMAT_SYMBOLS.items():
 
 
 MIMETYPE_OF_EXT = {
+    ".aax": "audio/vnd.audible.aax",
     ".apnx": "application/x-apnx-sidecar",
     ".bin": "application/octet-stream",
     ".bmp": "image/bmp",
@@ -186,6 +187,7 @@ EXTS_OF_MIMETYPE = {
     "audio/mp3": [".mp4"],
     "audio/mp4": [".mp4"],
     "audio/mpeg": [".mp3"],
+    "audio/vnd.audible.aax": [".aax"],
     "figure": [".figure"],
     "font/otf": [".otf"],
     "font/ttf": [".ttf"],
@@ -414,7 +416,7 @@ def combine_image_tiles(
         if missing_tiles:
             log.error("Resource %s is missing tiles: %s" % (resource_name, repr(missing_tiles)))
             if ignore_variants:
-                return None
+                return None, None
 
         full_image = Image.new(full_image_color_mode + full_image_opacity_mode, (resource_width, resource_height))
 
