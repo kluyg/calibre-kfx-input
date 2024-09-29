@@ -26,7 +26,7 @@ class KFXInput(InputFormatPlugin):
     name = "KFX Input"
     author = "jhowell"
     file_types = {"azw8", "kfx", "kfx-zip", "kpf"}
-    version = (2, 14, 0)
+    version = (2, 15, 0)
     minimum_calibre_version = (5, 0, 0)
     supported_platforms = ["windows", "osx", "linux"]
     description = "Convert from Amazon KFX format"

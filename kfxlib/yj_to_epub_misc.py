@@ -253,6 +253,7 @@ class KFX_EPUB_Misc(object):
                     ("$72", "fill-opacity"),
                     ("$75", "stroke"),
                     ("$531", "stroke-dasharray"),
+                    ("$532", "stroke-dashoffset"),
                     ("$77", "stroke-linecap"),
                     ("$529", "stroke-linejoin"),
                     ("$530", "stroke-miterlimit"),
@@ -382,7 +383,7 @@ class KFX_EPUB_Misc(object):
             if vals[0:4] == [-1., 0., 0., -1.]:
                 return translate + "rotate(180deg)"
 
-            log.error("Unexpected transform matrix: %s" % str(vals))
+            log.warning("Unexpected transform matrix: %s" % str(vals))
             return "matrix(%s)" % (sep.join([value_str(v) for v in vals]))
 
         log.error("Unexpected transform: %s" % str(vals))

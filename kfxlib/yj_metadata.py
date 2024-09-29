@@ -279,7 +279,7 @@ class BookMetadata(object):
     def is_image_based_fixed_layout(self):
         if not hasattr(self, "_cached_is_image_based_fixed_layout"):
             try:
-                self.collect_ordered_image_references()
+                self.get_ordered_image_resources()
             except Exception:
                 self._cached_is_image_based_fixed_layout = False
             else:

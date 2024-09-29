@@ -868,7 +868,7 @@ class KFX_EPUB_Content(object):
                             self.move_anchors(svg, mathml)
                         else:
                             desc = etree.Element(qname(SVG_NS_URI, "desc"))
-                            desc.text = annotation_text
+                            desc.text = re.sub(" amzn-src-id=\"[0-9]+\"", "", annotation_text)
                             svg.insert(0 if svg[0].tag != "title" else 1, desc)
 
                         if ("$56" in content and

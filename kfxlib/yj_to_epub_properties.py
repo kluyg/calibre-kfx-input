@@ -429,6 +429,8 @@ YJ_PROPERTY_INFO = {
 
     "$531": Prop("-svg-stroke-dasharray"),
 
+    "$532": Prop("-svg-stroke-dashoffset"),
+
     "$77": Prop("-svg-stroke-linecap", {
         "$534": "butt",
         "$533": "round",

@@ -24,7 +24,7 @@ class KFX_IMAGE_BOOK(object):
         self.book = book
 
     def convert_book_to_cbz(self):
-        ordered_images = self.get_ordered_images()
+        ordered_images = self.get_ordered_images()[0]
 
         yj_metadata = self.book.get_yj_metadata_from_book()
         comic_book_info = {}
@@ -55,7 +55,7 @@ class KFX_IMAGE_BOOK(object):
         return combine_images_into_cbz(ordered_images, cbz_metadata)
 
     def convert_book_to_pdf(self):
-        ordered_images = self.get_ordered_images()
+        ordered_images, ordered_image_pids, content_pos_info = self.get_ordered_images()
 
         yj_metadata = self.book.get_yj_metadata_from_book()
         current_date = datetime.datetime.now().strftime("D\072%Y%m%d%H%M%S")
@@ -71,33 +71,56 @@ class KFX_IMAGE_BOOK(object):
         if yj_metadata.authors:
             pdf_metadata["/Author"] = " & ".join(yj_metadata.authors)
 
-        return combine_images_into_pdf(ordered_images, pdf_metadata)
+        pdf_outline = self.book.get_toc_entries()
+
+        def add_pages_nums_to_toc(toc):
+            for toc_entry in toc:
+                toc_entry.page_num = None
+                if toc_entry.eid is not None:
+                    toc_pid = self.book.pid_for_eid(toc_entry.eid, toc_entry.eid_offset, content_pos_info)
+                    if toc_pid is not None:
+                        toc_entry.page_num = 0
+                        for ordered_page_num, ordered_page_pid in enumerate(ordered_image_pids):
+                            toc_entry.page_num = ordered_page_num
+                            if toc_pid <= ordered_page_pid:
+                                break
+                    else:
+                        log.error("Failed to locate pid toc_entry: label=%s, eid=%s, eid_offset=%s" % (
+                            toc_entry.label, repr(toc_entry.eid), toc_entry.eid_offset))
+
+                add_pages_nums_to_toc(toc_entry.children)
+
+        add_pages_nums_to_toc(pdf_outline)
+
+        return combine_images_into_pdf(ordered_images, pdf_metadata, pdf_outline)
 
     def get_ordered_images(self):
 
-        referenced_resources = self.book.collect_ordered_image_references()
+        ordered_image_resources, ordered_image_resource_pids, content_pos_info = self.book.get_ordered_image_resources()
 
         unreferenced_resources = set()
         for fragment in self.book.fragments.get_all("$164"):
             resource = fragment.value
             resource_format = resource.get("$161")
-            if (resource_format == "$565" and fragment.fid not in referenced_resources and
+            if (resource_format == "$565" and fragment.fid not in ordered_image_resources and
                     fragment.fid not in unreferenced_resources):
                 log.error("Found unreferenced PDF resource: %s" % fragment.fid)
                 unreferenced_resources.add(fragment.fid)
 
         ordered_images = []
-        for fid in referenced_resources:
+        ordered_image_pids = []
+        for fid, pid in zip(ordered_image_resources, ordered_image_resource_pids):
             image_resource = self.get_resource_image(fid)
             if image_resource is not None:
                 ordered_images.append(image_resource)
+                ordered_image_pids.append(pid)
 
         num_pages = self.book.get_page_count()
 
         if num_pages and len(ordered_images) < num_pages:
             log.warning("Expected %d pages but found only %d page images in book" % (num_pages, len(ordered_images)))
 
-        return ordered_images
+        return (ordered_images, ordered_image_pids, content_pos_info)
 
     def get_resource_image(self, resource_name, ignore_variants=False):
         fragment = self.book.fragments.get(ftype="$164", fid=resource_name)
@@ -157,7 +180,7 @@ class KFX_IMAGE_BOOK(object):
         return ImageResource(resource_format, location, raw_media, resource_height, resource_width)
 
 
-def combine_images_into_pdf(ordered_images, metadata=None):
+def combine_images_into_pdf(ordered_images, metadata=None, outline=None):
     if len(ordered_images) == 0:
         return None
 
@@ -177,53 +200,65 @@ def combine_images_into_pdf(ordered_images, metadata=None):
             combined_pdf_images.append(convert_image_to_pdf(image_resource))
 
     if len(combined_pdf_images) == 1 and combined_pdf_images[0].entire_resource_used():
+        combined = False
         pdf_data = combined_pdf_images[0].raw_media
 
-        if metadata:
-            reader = pypdf.PdfReader(io.BytesIO(pdf_data))
-            writer = pypdf.PdfWriter()
+        if not (metadata or outline):
+            return pdf_data
 
-            for page in reader.pages:
-                writer.add_page(page)
+        try:
+            writer = pypdf.PdfWriter(clone_from=io.BytesIO(pdf_data))
+        except Exception as e:
+            log.error("PdfWriter error: %s" % repr(e))
+            return None
+    else:
+        combined = True
+        try:
+            writer = pypdf.PdfMerger()
 
-            writer.add_metadata(metadata)
+            for image_resource in combined_pdf_images:
+                if image_resource.entire_resource_used():
+                    writer.append(fileobj=io.BytesIO(image_resource.raw_media))
+                else:
+                    log.warning("Using PDF %s pages %s of %d" % (
+                        image_resource.location, repr(image_resource.page_nums), image_resource.total_pages))
 
-            updated_file = io.BytesIO()
-            writer.write(updated_file)
-            pdf_data = updated_file.getvalue()
-            updated_file.close()
-
-        return pdf_data
+                    for page_range in image_resource.page_number_ranges():
+                        writer.append(fileobj=io.BytesIO(image_resource.raw_media), pages=page_range)
+        except Exception as e:
+            log.error("PdfMerger error: %s" % repr(e))
+            return None
 
     try:
-        merger = pypdf.PdfMerger()
-
-        for image_resource in combined_pdf_images:
-            if image_resource.entire_resource_used():
-                merger.append(fileobj=io.BytesIO(image_resource.raw_media))
-            else:
-                log.warning("Using PDF %s pages %s of %d" % (
-                    image_resource.location, repr(image_resource.page_nums), image_resource.total_pages))
-
-                for page_range in image_resource.page_number_ranges():
-                    merger.append(fileobj=io.BytesIO(image_resource.raw_media), pages=page_range)
-
         if metadata:
-            merger.add_metadata(metadata)
+            writer.add_metadata(metadata)
 
-        merged_file = io.BytesIO()
-        merger.write(merged_file)
-        pdf_data = merged_file.getvalue()
-        merged_file.close()
+        if outline:
+            if len(writer.outline) == 0:
+                add_pdf_outline(writer, outline)
+            else:
+                log.warning("Existing PDF outline left unchanged")
+
+        updated_file = io.BytesIO()
+        writer.write(updated_file)
+        pdf_data = updated_file.getvalue()
+        updated_file.close()
     except Exception as e:
-        log.error("PdfMerger error: %s" % repr(e))
-        pdf_data = None
+        log.error("pypdf error: %s" % repr(e))
+        return None
 
-    if pdf_data is not None:
-        log.info("Combined %s resources into a %d page PDF file" % (
-            list_counts(image_resource_formats), len(ordered_images)))
+    if combined:
+        log.info("Combined %s resources into a %d page PDF file" % (list_counts(image_resource_formats), len(ordered_images)))
 
     return pdf_data
+
+
+def add_pdf_outline(pdf_writer, outline_entries, parent=None):
+    for outline_entry in outline_entries:
+        new_entry = pdf_writer.add_outline_item(outline_entry.label, outline_entry.page_num, parent=parent)
+
+        if outline_entry.children:
+            add_pdf_outline(pdf_writer, outline_entry.children, new_entry)
 
 
 def combine_images_into_cbz(ordered_images, metadata=None):

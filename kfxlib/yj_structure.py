@@ -1257,121 +1257,102 @@ class BookStructure(object):
 
         return False
 
-    def collect_ordered_image_references(self):
+    def get_toc_entries(self):
+
+        class TocEntry(object):
+            def __init__(self, label, eid, eid_offset, children=None):
+                self.label = label
+                self.eid = eid
+                self.eid_offset = eid_offset
+                self.children = children
+
+        def process_toc_nav_unit(nav_unit, toc, heading_level):
+            if ion_type(nav_unit) is IonSymbol:
+                nav_unit = self.fragments.get(ftype="$393", fid=nav_unit)
+
+            if nav_unit is None:
+                return
+
+            nav_unit = unannotated(nav_unit)
+            nested_toc = []
+
+            for entry in nav_unit.get("$247", []):
+                process_toc_nav_unit(entry, nested_toc, heading_level + 1)
+
+            for entry_set in nav_unit.get("$248", []):
+                for entry in entry_set.get("$247", []):
+                    process_toc_nav_unit(entry, nested_toc, heading_level + 1)
+
+            label = nav_unit.get("$241", {}).get("$244", "")
+            eid = eid_offset = None
+
+            if "$246" in nav_unit:
+                position = nav_unit.get("$246")
+                eid = position.get("$155", None) or position.get("$598", None)
+                eid_offset = position.get("$143", 0)
+
+            if (not label) and (not eid):
+                toc.extend(nested_toc)
+            else:
+                toc.append(TocEntry(label, eid, eid_offset, nested_toc))
+
+        toc = []
+        fragment = self.fragments.get("$389")
+        if fragment is not None:
+            for book_navigation in fragment.value:
+                for nav_container in book_navigation.get("$392", []):
+                    if ion_type(nav_container) is IonSymbol:
+                        nav_container = self.fragments.get(ftype="$391", fid=nav_container)
+
+                    if nav_container is not None:
+                        nav_container = unannotated(nav_container)
+                        if nav_container.get("$235", None) == "$212":
+
+                            for nav_unit in nav_container.get("$247", []):
+                                process_toc_nav_unit(nav_unit, toc, 1)
+        return toc
+
+    def get_ordered_image_resources(self):
         if not self.is_fixed_layout:
             raise Exception("Book is not fixed-layout")
 
-        processed_story_names = set()
+        content_pos_info = self.collect_content_position_info(
+            skip_non_rendered_content=True, include_background_images=True)
+
         ordered_image_resources = []
+        ordered_image_resource_pids = []
+        next_pid = 0
+        section_images = collections.defaultdict(list)
 
-        def collect_section_info(section_name):
-            pending_story_names = []
-            section_image_resources = set()
-            section_image_types = set()
+        for chunk in content_pos_info:
+            if chunk.text is not None:
+                raise Exception("Book contains unexpected text")
 
-            def add_section_resource(resource_name, image_type):
-                if resource_name is not None and resource_name not in section_image_resources:
-                    fragment = self.fragments.get(ftype="$164", fid=resource_name)
-                    if fragment is not None:
-                        resource = fragment.value
-                        if resource.get("$161") in FIXED_LAYOUT_IMAGE_FORMATS:
-                            section_image_resources.add(resource_name)
-                            section_image_types.add(image_type)
-                            ordered_image_resources.append(resource_name)
+            if chunk.image_resource is not None:
+                ordered_image_resources.append(chunk.image_resource)
+                ordered_image_resource_pids.append(chunk.pid)
+                section_images[chunk.section_name].append(chunk)
 
-            def walk_content(data, content_key):
-                data_type = ion_type(data)
-
-                if data_type is IonAnnotation:
-                    walk_content(data.value, content_key)
-
-                elif data_type is IonList:
-                    for i, fc in enumerate(data):
-                        if content_key in {"$146", "$274"} and self.is_kpf_prepub and ion_type(fc) is IonSymbol:
-                            fc = self.fragments[YJFragmentKey(ftype="$608", fid=fc)]
-
-                        walk_content(fc, content_key)
-
-                elif data_type is IonSExp:
-                    for fc in data:
-                        walk_content(fc, content_key)
-
-                elif data_type is IonStruct:
-                    if data.get("$69", False):
-                        return
-
-                    annot_type = data.get("$687")
-                    typ = data.get("$159")
-
-                    if typ == "$271":
-                        add_section_resource(data.get("$175"), "foreground")
-
-                    if "$479" in data:
-                        add_section_resource(data["$479"], "background")
-
-                    if "$141" in data:
-                        for pt in data["$141"]:
-                            if isinstance(pt, IonAnnotation):
-                                pt = pt.value
-
-                            walk_content(pt, "$141")
-
-                    if "$683" in data:
-                        walk_content(data["$683"], "$683")
-
-                    if "$749" in data:
-                        walk_content(self.fragments[YJFragmentKey(ftype="$259", fid=data["$749"])], "$259")
-
-                    if "$146" in data:
-                        walk_content(data["$146"], "$274" if typ == "$274" else "$146")
-
-                    if "$145" in data and annot_type not in ["$584", "$690"]:
-                        raise Exception("Section %s contains text" % section_name)
-
-                    if "$176" in data and content_key != "$259":
-                        fv = data["$176"]
-
-                        if self.has_illustrated_layout_conditional_page_template:
-                            if fv not in pending_story_names:
-                                pending_story_names.append(fv)
-                        else:
-                            if fv not in processed_story_names:
-                                walk_content(self.fragments[YJFragmentKey(ftype="$259", fid=fv)], "$259")
-                                processed_story_names.add(fv)
-
-                    if "$157" in data:
-                        walk_content(self.fragments[YJFragmentKey(ftype="$157", fid=data["$157"])], "$157")
-
-                    for fk, fv in data.items():
-                        if ion_type(fv) != IonString and fk not in {
-                                "$749", "$584", "$683", "$145",
-                                "$146", "$141", "$702", "$250", "$176",
-                                "yj.dictionary.term", "yj.dictionary.unnormalized_term"}:
-                            walk_content(fv, fk)
-
-                elif data_type is IonString:
-                    raise Exception("Section %s contains text" % section_name)
-
-            walk_content(self.fragments[YJFragmentKey(ftype="$260", fid=section_name)], "$260")
-
-            for story_name in pending_story_names:
-                if story_name not in processed_story_names:
-                    walk_content(self.fragments[YJFragmentKey(ftype="$259", fid=story_name)], "$259")
-                    processed_story_names.add(story_name)
-
-            if len(section_image_resources) > 2:
-                raise Exception("Section %s contains more than two images" % section_name)
-
-            if len(section_image_types) > 1:
-                raise Exception("Section %s contains both background and foreground images" % section_name)
-
-        for section_name in self.ordered_section_names():
-            collect_section_info(section_name)
+            next_pid += chunk.length
 
         if len(ordered_image_resources) == 0:
             raise Exception("Book does not contain image resources")
 
-        return ordered_image_resources
+        for section_name, chunk_list in section_images.items():
+            if len(chunk_list) > 2:
+                raise Exception("Section %s contains more than two images" % section_name)
+
+            has_foreground_image = has_background_image = False
+            for chunk in chunk_list:
+                if chunk.length > 0:
+                    has_foreground_image = True
+                else:
+                    has_background_image = True
+
+            if has_foreground_image and has_background_image:
+                raise Exception("Section %s contains both background and foreground images" % section_name)
+
+        return (ordered_image_resources, ordered_image_resource_pids, content_pos_info)
 
     def log_known_error(self, msg):
         if REPORT_KNOWN_PROBLEMS:

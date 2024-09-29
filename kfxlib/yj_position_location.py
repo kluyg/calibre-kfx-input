@@ -127,7 +127,7 @@ class BookPosLoc(object):
                     log.warning("Feature/content mismatch: reflow-section-size is %s, expected %s for max section pid count %d" % (
                             reflow_section_size, reflow_section_size_calculated, max_section_pid_count))
 
-    def collect_content_position_info(self, keep_footnote_refs=True):
+    def collect_content_position_info(self, keep_footnote_refs=True, skip_non_rendered_content=False, include_background_images=False):
         eid_section = {}
         eid_start_pos = {}
         pos_info = []
@@ -386,6 +386,9 @@ class BookPosLoc(object):
                     annot_type = data.get("$687")
                     typ = data.get("$159")
 
+                    if skip_non_rendered_content and (data.get("$69", False) or typ == "$439"):
+                        return
+
                     if (typ in ["$270", "$271", "$269"] and
                             (parent_eid is not None and content_key == "$146" and data.get("$601") == "$283") and
                             list_index is not None):
@@ -516,6 +519,15 @@ class BookPosLoc(object):
 
                     if typ != "$271" and data.get("$601") == "$283" and self.cpi_pid_for_offset_ > save_cpi_pid_for_offset + 1:
                         self.cpi_pid_for_offset_ = save_cpi_pid_for_offset + 1
+
+                    if include_background_images:
+                        if "$479" in data:
+                            have_content(current_eid, 0, False, image_resource=data.get("$479"))
+
+                        if "$157" in data:
+                            style_value = self.fragments[YJFragmentKey(ftype="$157", fid=data["$157"])].value
+                            if "$479" in style_value:
+                                have_content(current_eid, 0, False, image_resource=style_value.get("$479"))
 
                 elif data_type is IonString:
                     length = unicode_len(data)
