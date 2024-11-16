@@ -5,7 +5,7 @@ import urllib.parse
 
 from .epub_output import TocEntry
 from .message_logging import log
-from .utilities import (make_unique_name, urlrelpath)
+from .utilities import (make_unique_name, truncate_list, urlrelpath)
 from .yj_position_location import DEBUG_PAGES
 from .yj_structure import APPROXIMATE_PAGE_LIST
 
@@ -335,6 +335,23 @@ class KFX_EPUB_Navigation(object):
 
         return self.get_anchor_id(self.position_anchors[eid][offset][0])
 
+    def position_of_anchor(self, anchor_name):
+        for eid, offsets in self.position_anchors.items():
+            for offset, anchor_names in offsets.items():
+                if anchor_name in anchor_names:
+                    return (eid, offset)
+
+        return (None, None)
+
+    def report_missing_positions(self):
+        if self.position_anchors:
+            pos = []
+            for id in self.position_anchors:
+                for offset in self.position_anchors[id]:
+                    pos.append("%s.%s" % (id, offset))
+
+            log.error("Failed to locate %d referenced positions: %s" % (len(pos), ", ".join(truncate_list(sorted(pos)))))
+
     def register_link_id(self, eid, kind):
         return self.register_anchor("%s_%s" % (kind, eid), (eid, 0))
 
@@ -344,6 +361,9 @@ class KFX_EPUB_Navigation(object):
             self.anchor_ids.add(new_id)
 
         return self.anchor_id[anchor_name]
+
+    def get_location_id(self, structure):
+        return structure.pop("$155", None) or structure.pop("$598", None)
 
     def process_position(self, eid, offset, elem):
         if self.DEBUG:
@@ -399,7 +419,7 @@ class KFX_EPUB_Navigation(object):
         positions = self.anchor_positions.get(anchor_name, [])
         log.error("Failed to locate uri for anchor: %s (position: %s)" % (
                 anchor_name, ", ".join([self.position_str(p) for p in sorted(positions)])))
-        return "/MISSING_ANCHOR#" + self.fix_html_id(anchor_name)
+        return "/MISSING_ANCHOR_" + self.fix_html_id(anchor_name)
 
     def report_duplicate_anchors(self):
         for anchor_name, positions in self.anchor_positions.items():

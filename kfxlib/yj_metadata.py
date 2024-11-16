@@ -8,10 +8,12 @@ import string
 from .ion import (IS, IonBLOB, IonStruct, IonSymbol, ion_type, unannotated)
 from .message_logging import log
 from .resources import (FORMAT_SYMBOLS, image_size, jpeg_type, SYMBOL_FORMATS)
-from .utilities import (disable_debug_log, list_symbols, list_symbols_unsorted, quote_name)
+from .utilities import (disable_debug_log, list_symbols, list_symbols_unsorted, natural_sort_key, quote_name)
 from .yj_container import (YJFragment, YJFragmentKey)
 from .yj_structure import (METADATA_NAMES, METADATA_SYMBOLS)
-from .yj_versions import (is_known_feature, is_known_generator, is_known_metadata, PACKAGE_VERSION_PLACEHOLDERS)
+from .yj_versions import (
+    kindle_feature_version, is_known_feature, is_known_generator, is_known_metadata, PACKAGE_VERSION_PLACEHOLDERS,
+    UNSUPPORTED)
 
 
 __license__ = "GPL v3"
@@ -394,8 +396,6 @@ class BookMetadata(object):
     def get_features(self):
         features = set()
 
-        features.add(("symbols", "max_id", self.symtab.local_min_id - 1))
-
         for fragment in self.fragments.get_all("$593"):
             for fc in fragment.value:
                 features.add(("format_capabilities", fc.get("$492", ""), fc.get("version", "")))
@@ -428,16 +428,21 @@ class BookMetadata(object):
 
     def report_features_and_metadata(self, unknown_only=False):
         report_features = set()
+        min_kindle_version = None
         for namespace, key, value in sorted(self.get_features()):
             val_str = quote_name(value) if isinstance(value, str) else (
                     ".".join([str(v) for v in value]) if isinstance(value, tuple) else str(value))
             if is_known_feature(namespace, key, value):
                 if not unknown_only:
                     report_features.add("%s-%s" % (key, val_str))
-            elif namespace == "symbols":
-                log.warning("Unknown %s feature: %s-%s" % (namespace, key, str(val_str)))
             else:
                 log.error("Unknown %s feature: %s-%s" % (namespace, key, str(val_str)))
+
+            min_version = kindle_feature_version(namespace, key, value)
+            if (min_kindle_version is not UNSUPPORTED and
+                    (min_version is UNSUPPORTED or min_kindle_version is None or
+                     natural_sort_key(min_version) > natural_sort_key(min_kindle_version))):
+                min_kindle_version = min_version
 
         if report_features:
             log.info("Features: %s" % list_symbols(report_features))
@@ -446,6 +451,11 @@ class BookMetadata(object):
 
         for generator in sorted(self.get_generators()):
             metadata.append(("kfxgen", "generator", len(metadata), ("%s/%s" % generator) if generator[1] else generator[0]))
+
+        metadata.append(("max_id", "symbols", len(metadata), self.symtab.local_min_id - 1))
+
+        if min_kindle_version is not None:
+            metadata.append(("min_kindle_version", "book_requirements", len(metadata), min_kindle_version))
 
         fragment = self.fragments.get("$490", first=True)
         if fragment is not None:
@@ -547,7 +557,7 @@ class BookMetadata(object):
                 with disable_debug_log():
                     cover = Image.open(io.BytesIO(data))
                     outfile = io.BytesIO()
-                    cover.save(outfile, "jpeg", quality="keep")
+                    cover.save(outfile, "JPEG", quality="keep")
                     cover.close()
 
                 data = outfile.getvalue()
@@ -620,7 +630,7 @@ class BookMetadata(object):
                 cover_thumbnail = Image.open(io.BytesIO(data))
                 cover_thumbnail.thumbnail((512, 512), Image.LANCZOS)
                 outfile = io.BytesIO()
-                cover_thumbnail.save(outfile, "jpeg" if fmt == "jpg" else fmt, quality=95, optimize=True)
+                cover_thumbnail.save(outfile, "JPEG" if fmt == "jpg" else fmt, quality=95, optimize=True)
                 thumbnail_width, thumbnail_height = cover_thumbnail.size
                 cover_thumbnail.close()
 

@@ -24,8 +24,8 @@ __license__ = "GPL v3"
 __copyright__ = "2016-2024, John Howell <jhowell@acm.org>"
 
 COMBINE_TILES_LOSSLESS = True
-MIN_TILED_JPEG_QUALITY = 80
-MAX_TILED_JPEG_QUALITY = 100
+MIN_JPEG_QUALITY = 90
+MAX_JPEG_QUALITY = 100
 COMBINED_TILE_SIZE_FACTOR = 1.2
 TILE_SIZE_REPORT_PERCENTAGE = 10
 DEBUG_TILES = False
@@ -452,40 +452,50 @@ def combine_image_tiles(
 
         if fmt == "jpg":
             desired_combined_size = max(int(separate_tiles_size * COMBINED_TILE_SIZE_FACTOR), 1024)
-            min_quality = MIN_TILED_JPEG_QUALITY
-            max_quality = MAX_TILED_JPEG_QUALITY
-            best_size_diff = best_quality = raw_media = None
+            raw_media, quality = optimize_jpeg_image_quality(full_image, desired_combined_size)
 
-            while max_quality >= min_quality:
-                quality = (max_quality + min_quality) // 2
-                outfile = io.BytesIO()
-                full_image.save(outfile, "jpeg", quality=quality, optimize=True)
-                test_raw_media = outfile.getvalue()
-                outfile.close()
-
-                size_diff = len(test_raw_media) - desired_combined_size
-
-                if best_size_diff is None or abs(size_diff) < abs(best_size_diff):
-                    best_size_diff = size_diff
-                    best_quality = quality
-                    raw_media = test_raw_media
-
-                if len(test_raw_media) < desired_combined_size:
-                    min_quality = quality + 1
-                else:
-                    max_quality = quality - 1
-
-            diff_percentage = (best_size_diff * 100) // desired_combined_size
-            if DEBUG_TILES and abs(diff_percentage) >= TILE_SIZE_REPORT_PERCENTAGE:
-                log.warning("Image resource %s has %d tiles %d bytes combined into quality %d %s JPEG %d bytes (%+d%%)" % (
-                    resource_name, tile_count, separate_tiles_size, best_quality, full_image.mode, len(raw_media), diff_percentage))
+            if DEBUG_TILES:
+                size_diff = len(raw_media) - desired_combined_size
+                diff_percentage = (size_diff * 100) // desired_combined_size
+                if abs(diff_percentage) >= TILE_SIZE_REPORT_PERCENTAGE:
+                    log.warning("Image resource %s has %d tiles %d bytes combined into quality %d %s JPEG %d bytes (%+d%%)" % (
+                        resource_name, tile_count, separate_tiles_size, quality, full_image.mode, len(raw_media), diff_percentage))
         else:
             outfile = io.BytesIO()
             full_image.save(outfile, fmt)
             raw_media = outfile.getvalue()
             outfile.close()
 
+        full_image.close()
+
     return raw_media, resource_format
+
+
+def optimize_jpeg_image_quality(jpeg_image, desired_size):
+    min_quality = MIN_JPEG_QUALITY
+    max_quality = MAX_JPEG_QUALITY
+    best_size_diff = best_quality = best_raw_media = None
+
+    while max_quality >= min_quality:
+        quality = (max_quality + min_quality) // 2
+        outfile = io.BytesIO()
+        jpeg_image.save(outfile, "JPEG", quality=quality, optimize=True)
+        raw_media = outfile.getvalue()
+        outfile.close()
+
+        size_diff = len(raw_media) - desired_size
+
+        if best_size_diff is None or abs(size_diff) < abs(best_size_diff):
+            best_size_diff = size_diff
+            best_quality = quality
+            best_raw_media = raw_media
+
+        if len(raw_media) < desired_size:
+            min_quality = quality + 1
+        else:
+            max_quality = quality - 1
+
+    return best_raw_media, best_quality
 
 
 def get_pdf_page_size(pdf_data, resource_name, page_num):
@@ -525,6 +535,36 @@ def box_tuple(box):
 
 def box_size(box):
     return (box.upper_right[0] - box.lower_left[0], box.upper_right[1] - box.lower_left[1])
+
+
+def crop_image(raw_media, resource_name, resource_width, resource_height, margin_left, margin_right, margin_top, margin_bottom):
+
+    with disable_debug_log():
+        img = Image.open(io.BytesIO(raw_media))
+        orig_width, orig_height = img.size
+        crop_left = int(margin_left * orig_width / resource_width)
+        crop_right = orig_width - int(margin_right * orig_width / resource_width) - 1
+        crop_top = int(margin_top * orig_height / resource_height)
+        crop_bottom = orig_height - int(margin_bottom * orig_height / resource_height) - 1
+
+        if crop_right < crop_left or crop_bottom < crop_top:
+            log.warning("cropping entire %s image resource %s (%d, %d) by (%d, %d, %d, %d)" % (
+                img.format, resource_name, orig_width, orig_height, crop_left, crop_top, crop_right, crop_bottom))
+
+        cropped_img = img.crop((crop_left, crop_top, crop_right, crop_bottom))
+
+        if img.format == "JPEG":
+            cropped_raw_media = optimize_jpeg_image_quality(cropped_img, len(raw_media) * 0.6)[0]
+        else:
+            cropped_file = io.BytesIO()
+            cropped_img.save(cropped_file, img.format)
+            cropped_img.close()
+            cropped_raw_media = cropped_file.getvalue()
+            cropped_file.close()
+
+        img.close()
+
+    return cropped_raw_media
 
 
 def jpeg_type(data, fmt="jpg"):

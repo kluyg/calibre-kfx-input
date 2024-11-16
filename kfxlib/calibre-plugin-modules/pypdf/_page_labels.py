@@ -1,12 +1,13 @@
 """
 Page labels are shown by PDF viewers as "the page number".
 
-A page has a numeric index, starting with 0. Additionally to that, the page
+A page has a numeric index, starting at 0. Additionally, the page
 has a label. In the most simple case:
+
     label = index + 1
 
-However, the title page and the table of contents might have roman numerals as
-page label. This makes things more complicated.
+However, the title page and the table of contents might have Roman numerals as
+page labels. This makes things more complicated.
 
 Example 1
 ---------
@@ -21,36 +22,36 @@ Example 1
 
 Example 2
 ---------
-The following example shows a document with pages labeled
+The following is a document with pages labeled
 i, ii, iii, iv, 1, 2, 3, A-8, A-9, ...
 
 1 0 obj
     << /Type /Catalog
-    /PageLabels << /Nums [
-            0 << /S /r >>
-            4 << /S /D >>
-            7 << /S /D
-            /P ( A- )
-            /St 8
-            >>
-            % A number tree containing
-            % three page label dictionaries
-        ]
-        >>
+       /PageLabels << /Nums [
+                        0 << /S /r >>
+                        4 << /S /D >>
+                        7 << /S /D
+                             /P ( A- )
+                             /St 8
+                        >>
+                        % A number tree containing
+                        % three page label dictionaries
+                        ]
+                   >>
     ...
     >>
 endobj
 
 
-PDF Specification 1.7
-=====================
+§12.4.2 PDF Specification 1.7 and 2.0
+=====================================
 
-Table 159 – Entries in a page label dictionary
-----------------------------------------------
-The S-key:
-D       Decimal arabic numerals
-R       Uppercase roman numerals
-r       Lowercase roman numerals
+Entries in a page label dictionary
+----------------------------------
+The /S key:
+D       Decimal Arabic numerals
+R       Uppercase Roman numerals
+r       Lowercase Roman numerals
 A       Uppercase letters (A to Z for the first 26 pages,
                            AA to ZZ for the next 26, and so on)
 a       Lowercase letters (a to z for the first 26 pages,
@@ -61,7 +62,13 @@ from typing import Iterator, List, Optional, Tuple, cast
 
 from ._protocols import PdfCommonDocProtocol
 from ._utils import logger_warning
-from .generic import ArrayObject, DictionaryObject, NullObject, NumberObject
+from .generic import (
+    ArrayObject,
+    DictionaryObject,
+    NullObject,
+    NumberObject,
+    is_null_or_none,
+)
 
 
 def number2uppercase_roman_numeral(num: int) -> str:
@@ -179,11 +186,13 @@ def index2label(reader: PdfCommonDocProtocol, index: int) -> str:
                 # kid = {'/Limits': [0, 63], '/Nums': [0, {'/P': 'C1'}, ...]}
                 limits = cast(List[int], kid["/Limits"])
                 if limits[0] <= index <= limits[1]:
-                    if kid.get("/Kids", None) is not None:
+                    if not is_null_or_none(kid.get("/Kids", None)):
                         # Recursive definition.
                         level += 1
                         if level == 100:  # pragma: no cover
-                            raise NotImplementedError("Too deep nesting is not supported.")
+                            raise NotImplementedError(
+                                "Too deep nesting is not supported."
+                            )
                         number_tree = kid
                         # Exit the inner `for` loop and continue at the next level with the
                         # next iteration of the `while` loop.
@@ -194,10 +203,7 @@ def index2label(reader: PdfCommonDocProtocol, index: int) -> str:
                 # and continue with the fallback.
                 break
 
-    logger_warning(
-        f"Could not reliably determine page label for {index}.",
-        __name__
-    )
+    logger_warning(f"Could not reliably determine page label for {index}.", __name__)
     return str(index + 1)  # Fallback if neither /Nums nor /Kids is in the number_tree
 
 

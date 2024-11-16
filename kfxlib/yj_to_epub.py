@@ -9,7 +9,7 @@ from .epub_output import (EPUB_Output)
 
 from .ion import (ion_type, IonAnnotation, IonList, IonSExp, IonString, IonStruct, IonSymbol)
 from .message_logging import log
-from .utilities import (check_empty, list_symbols, truncate_list, UUID_MATCH_RE)
+from .utilities import (check_empty, list_symbols, UUID_MATCH_RE)
 from .yj_structure import SYM_TYPE
 from .yj_to_epub_content import KFX_EPUB_Content
 from .yj_to_epub_illustrated_layout import KFX_EPUB_Illustrated_Layout
@@ -48,7 +48,7 @@ class KFX_EPUB(
 
     DEBUG = False
 
-    def __init__(self, book, epub2_desired=False, force_cover=False):
+    def __init__(self, book, epub2_desired=False, force_cover=False, metadata_only=False):
         decimal.getcontext().prec = 6
         KFX_EPUB_Content.__init__(self)
         KFX_EPUB_Illustrated_Layout.__init__(self)
@@ -58,7 +58,7 @@ class KFX_EPUB(
         KFX_EPUB_Notebook.__init__(self)
         KFX_EPUB_Properties.__init__(self)
         KFX_EPUB_Resources.__init__(self)
-        EPUB_Output.__init__(self, epub2_desired, force_cover)
+        EPUB_Output.__init__(self, epub2_desired, force_cover, not metadata_only)
 
         self.book = book
         self.book_symbols = set()
@@ -78,6 +78,9 @@ class KFX_EPUB(
         self.process_anchors()
         self.process_navigation()
 
+        if metadata_only:
+            return
+
         for style_name, yj_properties in self.book_data.get("$157", {}).items():
             self.check_fragment_name(yj_properties, "$157", style_name, delete=False)
 
@@ -93,14 +96,7 @@ class KFX_EPUB(
         self.fixup_styles_and_classes()
         self.create_css_files()
         self.prepare_book_parts()
-
-        if self.position_anchors:
-            pos = []
-            for id in self.position_anchors:
-                for offset in self.position_anchors[id]:
-                    pos.append("%s.%s" % (id, offset))
-
-            log.error("Failed to locate %d referenced positions: %s" % (len(pos), ", ".join(truncate_list(sorted(pos)))))
+        self.report_missing_positions()
 
         if RETAIN_UNUSED_RESOURCES:
             for external_resource in self.book_data.get("$164", {}):
@@ -322,13 +318,6 @@ class KFX_EPUB(
 
     def get_named_fragment(self, structure, ftype=None, delete=True, name_symbol=None):
         return self.get_fragment(ftype=ftype, fid=structure.pop(name_symbol or FRAGMENT_NAME_SYMBOL[ftype]), delete=delete)
-
-    def get_location_id(self, structure):
-        id = structure.pop("$155", None) or structure.pop("$598", None)
-        if id is not None:
-            id = str(id)
-
-        return id
 
     def check_fragment_name(self, fragment_data, ftype, fid, delete=True):
         name = self.get_fragment_name(fragment_data, ftype, delete)

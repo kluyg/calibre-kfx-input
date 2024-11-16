@@ -109,6 +109,7 @@ class KFX_EPUB_Resources(object):
             location_fn = location_fn.partition(".")[0] + extension
 
         resource.pop("$597", None)
+        resource.pop("$70", None)
         resource.pop("$57", None)
         resource.pop("$56", None)
         resource.pop("$499", None)
@@ -338,7 +339,7 @@ class KFX_EPUB_Resources(object):
                 return self.anchor_as_uri(anchor)
             else:
                 log.error("Failed to locate anchor for %s" % uri)
-                return "/MISSING_NAVTO#%s_%s" % (urllib.parse.unquote(purl.netloc), purl.fragment)
+                return "/MISSING_NAVTO_%s%s%s" % (urllib.parse.unquote(purl.netloc), "_" if purl.fragment else "", purl.fragment)
 
         if purl.scheme in ["http", "https"]:
             if manifest_external_refs:

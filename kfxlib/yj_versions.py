@@ -8,8 +8,96 @@ __license__ = "GPL v3"
 __copyright__ = "2016-2024, John Howell <jhowell@acm.org>"
 
 
-ANY = None
+ANY = True
 TF = {False, True}
+
+ARTICLE_READER_V1 = "ARTICLE_READER_V1"
+DUAL_READING_ORDER_V1 = "DUAL_READING_ORDER_V1"
+GUIDED_VIEW_NATIVE_V1 = "GUIDED_VIEW_NATIVE_V1"
+JPEGXR_ENCODING_SUPPORTED = "JPEGXR_ENCODING_SUPPORTED"
+KINDLE_RECAPS_V1 = "KINDLE_RECAPS_V1"
+MOP_SUPPORTED = "MOP_SUPPORTED"
+NMDL_NOTE = "NMDL_NOTE"
+NMDL_NOTE_V2 = "NMDL_NOTE_V2",
+SUPPORTS_HD_V1 = "SUPPORTS_HD_V1"
+SUPPORTS_HDV_V1 = "SUPPORTS_HDV_V1"
+SUPPORTS_HDV_V2 = "SUPPORTS_HDV_V2"
+VELLA_SUPPORTED = "VELLA_SUPPORTED"
+YJ = "YJ"
+YJJPV_V1_SIMPLEVERTICAL = "YJJPV_V1_SIMPLEVERTICAL"
+YJJPV_V2_TRACKB = "YJJPV_V2_TRACKB"
+YJJPV_V3_TRACKB = "YJJPV_V3_TRACKB"
+YJJPV_V4_TRACKD_PART1 = "YJJPV_V4_TRACKD_PART1"
+YJJPV_V5 = "YJJPV_V5"
+YJJPV_V6 = "YJJPV_V6"
+YJJPV_V7 = "YJJPV_V7"
+YJJPV_V8 = "YJJPV_V8"
+YJ_AUDIO_V1 = "YJ_AUDIO_V1"
+YJ_AUDIO_V2 = "YJ_AUDIO_V2"
+YJ_AUDIO_V3 = "YJ_AUDIO_V3"
+YJ_CONDITIONAL_STRUCTURE_V1 = "YJ_CONDITIONAL_STRUCTURE_V1"
+YJ_COVER_IMAGE_DEFER_V1 = "YJ_COVER_IMAGE_DEFER_V1"
+YJ_COVER_IMAGE_SEPARATE_V1 = "YJ_COVER_IMAGE_SEPARATE_V1"
+YJ_DICT_V1 = "YJ_DICT_V1"
+YJ_DICT_V1_ARABIC = "YJ_DICT_V1_ARABIC"
+YJ_FIXED_LAYOUT_V2 = "YJ_FIXED_LAYOUT_V2"
+YJ_FIXED_LAYOUT_PDF = "YJ_FIXED_LAYOUT_PDF"
+YJ_FIXED_LAYOUT_PDF_V2 = "YJ_FIXED_LAYOUT_PDF_V2"
+YJ_FIXED_LAYOUT_PDF_V3 = "YJ_FIXED_LAYOUT_PDF_V3"
+YJ_FIXED_LAYOUT_PDOCS_PDF = "YJ_FIXED_LAYOUT_PDOCS_PDF"
+YJ_FORCED_CONTINUOUS_SCROLL_V1 = "YJ_FORCED_CONTINUOUS_SCROLL_V1"
+YJ_INTERACTIVITY_V1 = "YJ_INTERACTIVITY_V1"
+YJ_INTERACTIVITY_V2 = "YJ_INTERACTIVITY_V2"
+YJ_MATHML_V1 = "YJ_MATHML_V1"
+YJ_MIXED_WRITING_MODE_V1 = "YJ_MIXED_WRITING_MODE_V1"
+YJ_MIXED_WRITING_MODE_V2 = "YJ_MIXED_WRITING_MODE_V2"
+YJ_NON_PDF_AUDIO_VIDEO_V1 = "YJ_NON_PDF_AUDIO_VIDEO_V1"
+YJ_PDF_BACKED_FIXED_LAYOUT_V1 = "YJ_PDF_BACKED_FIXED_LAYOUT_V1"
+YJ_PDF_BACKED_FIXED_LAYOUT_V1_TEST = "YJ_PDF_BACKED_FIXED_LAYOUT_V1_TEST"
+YJ_PDF_BACKED_FIXED_LAYOUT_V2 = "YJ_PDF_BACKED_FIXED_LAYOUT_V2"
+YJ_PDF_LINKS = "YJ_PDF_LINKS"
+YJ_PUBLISHER_PANELS_V2 = "YJ_PUBLISHER_PANELS_V2"
+YJ_PUBLISHER_PANELS_V3 = "YJ_PUBLISHER_PANELS_V3"
+YJ_PUBLISHER_PANELS_V4 = "YJ_PUBLISHER_PANELS_V4"
+YJ_RUBY_V1 = "YJ_RUBY_V1"
+YJ_REFLOWABLE = "YJ_REFLOWABLE"
+YJ_REFLOWABLE_V2 = "YJ_REFLOWABLE_V2"
+YJ_REFLOWABLE_V3 = "YJ_REFLOWABLE_V3"
+YJ_REFLOWABLE_V4 = "YJ_REFLOWABLE_V4"
+YJ_REFLOWABLE_V5 = "YJ_REFLOWABLE_V5"
+YJ_REFLOWABLE_V6 = "YJ_REFLOWABLE_V6"
+YJ_REFLOWABLE_V7 = "YJ_REFLOWABLE_V7"
+YJ_REFLOWABLE_V8 = "YJ_REFLOWABLE_V8"
+YJ_REFLOWABLE_V9 = "YJ_REFLOWABLE_V9"
+YJ_REFLOWABLE_V10 = "YJ_REFLOWABLE_V10"
+YJ_REFLOWABLE_V11 = "YJ_REFLOWABLE_V11"
+YJ_REFLOWABLE_V12 = "YJ_REFLOWABLE_V12"
+YJ_REFLOWABLE_V13 = "YJ_REFLOWABLE_V13"
+YJ_REFLOWABLE_V14 = "YJ_REFLOWABLE_V14"
+YJ_REFLOWABLE_AR_v1 = "YJ_REFLOWABLE_AR_v1"
+YJ_REFLOWABLE_CN_v1 = "YJ_REFLOWABLE_CN_v1"
+YJ_REFLOWABLE_INDIC_V1 = "YJ_REFLOWABLE_INDIC_V1"
+YJ_REFLOWABLE_JP_v1 = "YJ_REFLOWABLE_JP_v1"
+YJ_REFLOWABLE_LANG_EXPANSION_V1 = "YJ_REFLOWABLE_LANG_EXPANSION_V1"
+YJ_REFLOWABLE_LARGESECTION = "YJ_REFLOWABLE_LARGESECTION"
+YJ_REFLOWABLE_TABLESv1 = "YJ_REFLOWABLE_TABLESv1"
+YJ_REFLOWABLE_TABLESv2 = "YJ_REFLOWABLE_TABLESv2"
+YJ_REFLOWABLE_TABLESv3 = "YJ_REFLOWABLE_TABLESv3"
+YJ_REFLOWABLE_TABLESv4 = "YJ_REFLOWABLE_TABLESv4"
+YJ_REFLOWABLE_TABLESv5 = "YJ_REFLOWABLE_TABLESv5"
+YJ_REFLOWABLE_TABLESv6 = "YJ_REFLOWABLE_TABLESv6"
+YJ_REFLOWABLE_TABLESv7 = "YJ_REFLOWABLE_TABLESv7"
+YJ_REFLOWABLE_TABLESv8 = "YJ_REFLOWABLE_TABLESv8"
+YJ_REFLOWABLE_TABLESv9 = "YJ_REFLOWABLE_TABLESv9"
+YJ_REFLOWABLE_TABLESv10 = "YJ_REFLOWABLE_TABLESv10"
+YJ_REFLOWABLE_TABLESv11 = "YJ_REFLOWABLE_TABLESv11"
+YJ_REFLOWABLE_TABLEVIEWERv1 = "YJ_REFLOWABLE_TABLEVIEWERv1"
+YJ_REFLOWABLE_TABLEVIEWERv2 = "YJ_REFLOWABLE_TABLEVIEWERv2"
+YJ_REFLOWABLE_TCN_v1 = "YJ_REFLOWABLE_TCN_v1"
+YJ_TEXT_POPUPS_V1 = "YJ_TEXT_POPUPS_V1"
+YJ_VERTICAL_TEXT_SHADOW_V1 = "YJ_VERTICAL_TEXT_SHADOW_V1"
+YJ_VIDEO_V1 = "YJ_VIDEO_V1"
+YJ_VIDEO_V3 = "YJ_VIDEO_V3"
 
 
 PACKAGE_VERSION_PLACEHOLDERS = {
@@ -131,319 +219,237 @@ GENERIC_CREATOR_VERSIONS = {
 
 KNOWN_FEATURES = {
 
-    "symbols": {
-        "max_id": {
-            489,
-            609,
-            620,
-            626,
-            627,
-            634,
-            652,
-            662,
-            667,
-            668,
-            673,
-            681,
-            693,
-            695,
-            696,
-            697,
-            700,
-            701,
-            705,
-            716,
-            748,
-            753,
-            754,
-            755,
-            759,
-            761,
-            777,
-            779,
-            783,
-            785,
-            786,
-            787,
-            789,
-            797,
-            804,
-            825,
-            827,
-            831,
-            832,
-            833,
-            834,
-            },
-        },
-
     "format_capabilities": {
-        "kfxgen.pidMapWithOffset": {1},
-        "kfxgen.positionMaps": {2},
-        "kfxgen.textBlock": {1},
+        "kfxgen.pidMapWithOffset": {1: YJ},
+        "kfxgen.positionMaps": {2: YJ},
+        "kfxgen.textBlock": {1: YJ},
 
-        "db.delta_update": {1},
-        "db.schema": {1},
+        "db.delta_update": {1: NMDL_NOTE},
+        "db.schema": {1: YJ},
         },
 
     "SDK.Marker": {
         "CanonicalFormat": {
-            1,
+            1: YJ,
 
-            2,
+            2: YJ,
             },
         },
 
     "com.amazon.kindle.nmdl": {
         "note": {
-            2,
+            2: NMDL_NOTE_V2,
             },
         },
 
     "com.amazon.yjconversion": {
 
         "ar-reflow-language": {
-            1,
+            1: YJ_REFLOWABLE_AR_v1,
             },
 
         "cn-reflow-language": {
-            1,
+            1: YJ_REFLOWABLE_CN_v1,
             },
 
         "indic-reflow-language": {
-            1,
+            1: YJ_REFLOWABLE_INDIC_V1,
             },
 
         "jp-reflow-language": {
-            1,
-
+            1: YJ_REFLOWABLE_JP_v1,
             },
 
         "jpvertical-reflow-language": {
-
-            2,
-
-            3,
-
-            4,
-
-            5,
-
-            6,
-
-            7,
-
+            2: YJJPV_V2_TRACKB,
+            3: YJJPV_V3_TRACKB,
+            4: YJJPV_V4_TRACKD_PART1,
+            5: YJJPV_V5,
+            6: YJJPV_V6,
+            7: YJJPV_V7,
             },
 
         "reflow-language": {
-            2,
-
-            3,
+            2: YJ_REFLOWABLE_LANG_EXPANSION_V1,
+            3: YJ_REFLOWABLE_INDIC_V1,
             },
 
         "reflow-language-expansion": {
-            1,
+            1: YJ_REFLOWABLE_LANG_EXPANSION_V1,
             },
 
         "tcn-reflow-language": {
-            1,
+            1: YJ_REFLOWABLE_TCN_v1,
             },
 
         "multiple_reading_orders-switchable": {
-            1,
+            1: DUAL_READING_ORDER_V1,
             },
 
-        "reflow-section-size":
-            ANY,
+        "reflow-section-size": {
+            ANY: YJ_REFLOWABLE_LARGESECTION,
+            },
 
         "reflow-style": {
-            1,
-
-            2,
-
-            3,
-
-            4,
-
-            5,
-
-            6,
-
-            7,
-
-            8,
-
-            9,
-
-            10,
-
-            11,
-
-            12,
-
-            13,
-
-            14,
-
-            (2147483646, 2147483647),
-            (2147483647, 2147483647),
+            1: YJ_REFLOWABLE,
+            2: YJ_REFLOWABLE_V2,
+            3: YJ_REFLOWABLE_V3,
+            4: YJ_REFLOWABLE_V4,
+            5: YJ_REFLOWABLE_V5,
+            6: YJ_REFLOWABLE_V6,
+            7: YJ_REFLOWABLE_V7,
+            8: YJ_REFLOWABLE_V8,
+            9: YJ_REFLOWABLE_V9,
+            10: YJ_REFLOWABLE_V10,
+            11: YJ_REFLOWABLE_V11,
+            12: YJ_REFLOWABLE_V12,
+            13: YJ_REFLOWABLE_V13,
+            14: YJ_REFLOWABLE_V14,
+            (2147483646, 2147483647): YJ,
+            (2147483647, 2147483647): YJ,
             },
 
         "yj_arabic_fixed_format": {
-            1,
+            1: YJ,
             },
 
         "yj_audio": {
-            1,
-
-            2,
-            3,
+            1: YJ_AUDIO_V1,
+            2: YJ_AUDIO_V2,
+            3: YJ_AUDIO_V3,
             },
 
         "yj_custom_word_iterator": {
-            1,
+            1: YJ_FIXED_LAYOUT_PDF,
             },
 
         "yj_dictionary": {
-            1,
-
-            2,
+            1: YJ_DICT_V1,
+            2: YJ_DICT_V1_ARABIC,
             },
 
         "yj_direction_rtl": {
-            1,
+            1: YJ,
             },
 
         "yj_double_page_spread": {
-            1,
+            1: YJ_FIXED_LAYOUT_V2,
             },
 
         "yj_facing_page": {
-            1,
+            1: YJ_FIXED_LAYOUT_V2,
             },
 
         "yj_fixed_layout": {
-            1,
+            1: YJ_FIXED_LAYOUT_PDF,
             },
 
         "yj_graphical_highlights": {
-            1,
+            1: YJ_FIXED_LAYOUT_PDF,
             },
 
-        "yj_hdv": {
-            1,
+        "yj_has_text_popups": {
+           1: YJ_TEXT_POPUPS_V1,
+           },
 
-            2,
+        "yj_hdv": {
+            1: SUPPORTS_HDV_V1,
+            2: SUPPORTS_HDV_V2,
             },
 
         "yj_interactive_image": {
-            1,
-
+            1: YJ_INTERACTIVITY_V1,
             },
 
         "yj_jpegxr_sd": {
-            1,
+            1: JPEGXR_ENCODING_SUPPORTED,
             },
 
         "yj_jpg_rst_marker_present": {
-            1,
+            1: YJ,
             },
 
         "yj_mathml": {
-            1,
+            1: YJ_MATHML_V1,
             },
 
         "yj_mixed_writing_mode": {
-            1,
-
-            2,
+            1: YJ_MIXED_WRITING_MODE_V1,
+            2: YJ_MIXED_WRITING_MODE_V2,
             },
 
         "yj_non_pdf_fixed_layout": {
-
-            2,
+            2: YJ_FIXED_LAYOUT_V2,
             },
 
         "yj_pdf_backed_fixed_layout": {
-            2,
+            2: YJ_PDF_BACKED_FIXED_LAYOUT_V2,
             },
 
         "yj_pdf_links": {
-            1,
+            1: YJ_PDF_LINKS,
             },
 
         "yj_pdf_support": {
-            1,
-
+            1: YJ_FIXED_LAYOUT_PDF,
             },
 
         "yj_publisher_panels": {
-            2,
-            3,
+            2: YJ_PUBLISHER_PANELS_V2,
+            3: YJ_PUBLISHER_PANELS_V3,
             },
 
         "yj_rotated_pages": {
-            1,
+            1: YJ_FIXED_LAYOUT_PDF,
             },
 
         "yj_ruby": {
-            1,
+            1: YJ_RUBY_V1,
             },
 
         "yj_table": {
-            1,
-
-            2,
-
-            3,
-
-            4,
-
-            5,
-
-            6,
-
-            7,
-
-            8,
-
-            9,
-
-            10,
-
-            11,
+            1: YJ_REFLOWABLE_TABLESv1,
+            2: YJ_REFLOWABLE_TABLESv2,
+            3: YJ_REFLOWABLE_TABLESv3,
+            4: YJ_REFLOWABLE_TABLESv4,
+            5: YJ_REFLOWABLE_TABLESv5,
+            6: YJ_REFLOWABLE_TABLESv6,
+            7: YJ_REFLOWABLE_TABLESv7,
+            8: YJ_REFLOWABLE_TABLESv8,
+            9: YJ_REFLOWABLE_TABLESv9,
+            10: YJ_REFLOWABLE_TABLESv10,
+            11: YJ_REFLOWABLE_TABLESv11,
             },
 
         "yj_table_viewer": {
-            1,
-
-            2,
+            1: YJ_REFLOWABLE_TABLEVIEWERv1,
+            2: YJ_REFLOWABLE_TABLEVIEWERv2,
             },
 
         "yj_textbook": {
-            1,
+            1: YJ_FIXED_LAYOUT_PDF,
             },
 
         "yj_thumbnails_present": {
-            1,
-            2,
+            1: YJ,
+            2: YJ,
             },
 
         "yj_vertical_text_shadow": {
-            1,
+            1: YJ_VERTICAL_TEXT_SHADOW_V1,
             },
 
         "yj_video": {
-            1,
-            3,
+            1: YJ,
+            3: YJ_VIDEO_V3,
             },
 
         "yj.conditional_structure": {
-            1,
+            1: YJ_CONDITIONAL_STRUCTURE_V1,
             },
 
         "yj.illustrated_layout": {
-            1,
+            1: YJ_REFLOWABLE_V5,
             },
 
         },
@@ -467,6 +473,10 @@ KNOWN_SUPPORTED_FEATURES = {
 KNOWN_METADATA = {
     "book_navigation": {
         "pages": ANY,
+    },
+
+    "book_requirements": {
+        "min_kindle_version": ANY,
     },
 
     "kindle_audit_metadata": {
@@ -609,6 +619,13 @@ KNOWN_METADATA = {
             "1.87.0.0",
             "1.88.0.0",
             "1.88.1.0",
+            "1.89.0.0",
+            "1.90.0.0",
+            "1.91.0.0",
+            "1.92.0.0",
+            "1.93.0.0",
+            "1.94.0.0",
+            "1.95.0.0",
 
             "3.0.0",
             "3.1.0",
@@ -709,6 +726,12 @@ KNOWN_METADATA = {
             "3.81.0",
             "3.82.0",
             "3.83.0",
+            "3.84.0",
+            "3.85.0",
+            "3.85.1",
+            "3.86.0",
+            "3.87.0",
+            "3.88.0",
             }
 
     },
@@ -728,6 +751,7 @@ KNOWN_METADATA = {
             3,
             },
         "yj_has_animations": {1},
+        "yj_has_text_popups": {1},
         "yj_illustrated_layout": {1},
         "yj_publisher_panels": {1},
         "yj_textbook": {1},
@@ -808,7 +832,53 @@ KNOWN_METADATA = {
         "title": ANY,
         "version": {1.0},
         "volume_label": ANY,
-        }
+        },
+
+    "symbols": {
+        "max_id": {
+            489,
+            609,
+            620,
+            626,
+            627,
+            634,
+            652,
+            662,
+            667,
+            668,
+            673,
+            681,
+            693,
+            695,
+            696,
+            697,
+            700,
+            701,
+            705,
+            716,
+            748,
+            753,
+            754,
+            755,
+            759,
+            761,
+            777,
+            779,
+            783,
+            785,
+            786,
+            787,
+            789,
+            797,
+            804,
+            825,
+            827,
+            831,
+            832,
+            833,
+            834,
+            },
+        },
     }
 
 
@@ -883,14 +953,14 @@ KNOWN_KCB_DATA = {
     "metadata": {
         "book_path": ANY,
         "edited_tool_versions": KNOWN_METADATA["kindle_audit_metadata"]["creator_version"],
-        "format": ["yj"],
+        "format": {"yj"},
         "global_styling": TF,
         "id": ANY,
         "log_path": ANY,
-        "platform": ["mac", "win"],
+        "platform": {"mac", "win"},
         "quality_report": ANY,
         "source_path": ANY,
-        "tool_name": ["KC", "KPR", "KTC", "Kindle Previewer 3"],
+        "tool_name": {"KC", "KPR", "KTC", "Kindle Previewer 3"},
         "tool_version": KNOWN_METADATA["kindle_audit_metadata"]["creator_version"],
         },
 
@@ -902,6 +972,39 @@ KNOWN_KCB_DATA = {
         "link_notification_preference": TF,
         }
     }
+
+
+UNSUPPORTED = "Unsupported"
+
+
+KINDLE_VERSION_CAPABILITIES = {
+    "5.6.5": [JPEGXR_ENCODING_SUPPORTED, YJ, YJ_REFLOWABLE, YJ_REFLOWABLE_V2, YJ_REFLOWABLE_LARGESECTION],
+    "5.7.2": [YJ_REFLOWABLE_V3, YJ_REFLOWABLE_V4, YJ_REFLOWABLE_TABLESv1],
+    "5.7.4": [SUPPORTS_HDV_V1],
+    "5.8.2": [YJ_REFLOWABLE_TABLEVIEWERv1],
+    "5.8.5": [YJ_FIXED_LAYOUT_V2, YJ_REFLOWABLE_INDIC_V1],
+    "5.8.7": [YJ_REFLOWABLE_V6, YJ_REFLOWABLE_TABLESv2, YJ_REFLOWABLE_TABLESv3, YJ_REFLOWABLE_TABLEVIEWERv2],
+    "5.8.8": [YJ_REFLOWABLE_V7, YJ_REFLOWABLE_TABLESv4, YJ_REFLOWABLE_TABLESv5],
+    "5.8.10": [YJ_REFLOWABLE_V8, YJ_REFLOWABLE_V9, YJ_REFLOWABLE_CN_v1],
+    "5.9.4": [YJ_DICT_V1, YJ_REFLOWABLE_V11, YJ_REFLOWABLE_JP_v1, YJ_REFLOWABLE_TABLESv6, YJ_REFLOWABLE_TABLESv7],
+    "5.9.6": [YJ_DICT_V1_ARABIC, YJ_FIXED_LAYOUT_PDF_V3, YJ_REFLOWABLE_V10, YJ_REFLOWABLE_AR_v1],
+    "5.10.1.1": [YJ_REFLOWABLE_LANG_EXPANSION_V1, YJ_REFLOWABLE_TCN_v1],
+    "5.11.1.1": [YJ_REFLOWABLE_V12],
+    "5.12.2": [YJJPV_V2_TRACKB],
+    "5.13.2": [YJ_COVER_IMAGE_DEFER_V1],
+    "5.13.4": [YJJPV_V1_SIMPLEVERTICAL, YJJPV_V3_TRACKB, YJJPV_V4_TRACKD_PART1, YJJPV_V5, YJJPV_V6, YJJPV_V7, YJJPV_V8],
+    "5.13.5": [YJ_MIXED_WRITING_MODE_V1, YJ_RUBY_V1],
+    "5.14.1": [SUPPORTS_HDV_V2],
+    "5.14.3": [YJ_MIXED_WRITING_MODE_V2, YJ_REFLOWABLE_V13, YJ_REFLOWABLE_V14, YJ_VERTICAL_TEXT_SHADOW_V1],
+    "5.14.3.2": YJ_PDF_BACKED_FIXED_LAYOUT_V1_TEST,
+    "5.16.6": [YJ_AUDIO_V3, YJ_CONDITIONAL_STRUCTURE_V1, YJ_PUBLISHER_PANELS_V3, YJ_VIDEO_V3],
+    }
+
+
+KINDLE_CAPABILITY_VERSIONS = {}
+for version, capabilities in KINDLE_VERSION_CAPABILITIES.items():
+    for capability in capabilities:
+        KINDLE_CAPABILITY_VERSIONS[capability] = version
 
 
 def is_known_generator(kfxgen_application_version, kfxgen_package_version):
@@ -918,20 +1021,26 @@ def is_known_generator(kfxgen_application_version, kfxgen_package_version):
 
 
 def is_known_feature(cat, key, val):
-    vals = KNOWN_FEATURES.get(cat, {}).get(key, [])
-    return vals is ANY or val in vals
+    vals = KNOWN_FEATURES.get(cat, {}).get(key, {})
+    return val in vals or ANY in vals
+
+
+def kindle_feature_version(cat, key, val):
+    vals = KNOWN_FEATURES.get(cat, {}).get(key, {})
+    feature = vals[val] if val in vals else vals.get(ANY)
+    return KINDLE_CAPABILITY_VERSIONS.get(feature, UNSUPPORTED) if feature is not None else UNSUPPORTED
 
 
 def is_known_metadata(cat, key, val):
-    vals = KNOWN_METADATA.get(cat, {}).get(key, [])
+    vals = KNOWN_METADATA.get(cat, {}).get(key, {})
     return vals is ANY or val in vals
 
 
 def is_known_aux_metadata(key, val):
-    vals = KNOWN_AUXILIARY_METADATA.get(key, [])
+    vals = KNOWN_AUXILIARY_METADATA.get(key, {})
     return vals is ANY or val in vals
 
 
 def is_known_kcb_data(cat, key, val):
-    vals = KNOWN_KCB_DATA.get(cat, {}).get(key, [])
+    vals = KNOWN_KCB_DATA.get(cat, {}).get(key, {})
     return vals is ANY or val in vals

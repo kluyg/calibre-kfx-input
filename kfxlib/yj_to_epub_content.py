@@ -27,6 +27,7 @@ INCLUDE_HERO_IMAGE_PROPERTIES = True
 SKIP_FIT_WIDTH_FOR_IMAGES = True
 ROUND_TRIP_ORIGINAL_STORIES = False
 COMBINE_NESTED_DIVS = True
+RETAIN_SECTION_FILENAMES = True
 
 LIST_STYLE_TYPES = {
     "$346": "ol",
@@ -168,7 +169,8 @@ class KFX_EPUB_Content(object):
                         page_template.pop("$159")
                         page_template.pop("$156")
 
-                        book_part = self.new_book_part()
+                        book_part = self.new_book_part(
+                            filename=self.SECTION_TEXT_FILEPATH % section_name if RETAIN_SECTION_FILENAMES else None)
                         self.link_css_file(book_part, self.STYLES_CSS_FILEPATH)
                         self.add_content(page_template, book_part.html, book_part, self.writing_mode, layout)
                         self.process_position(self.get_location_id(page_template), 0, book_part.body())
@@ -187,7 +189,8 @@ class KFX_EPUB_Content(object):
                 log.error("%s has %d active conditional page templates" % (self.content_context, templates_processed))
 
         else:
-            book_part = self.new_book_part()
+            book_part = self.new_book_part(
+                filename=self.SECTION_TEXT_FILEPATH % section_name if RETAIN_SECTION_FILENAMES else None)
             self.process_content(page_templates[-1], book_part.html, book_part, self.writing_mode, is_section=True)
 
             self.link_css_file(book_part, self.STYLES_CSS_FILEPATH)
@@ -230,7 +233,7 @@ class KFX_EPUB_Content(object):
             page_template.pop("$140", None)
             page_template.pop("$560", None)
 
-            parent_template_id = page_template.pop("$155", None) or page_template.pop("$598")
+            parent_template_id = self.get_location_id(page_template)
             story = self.get_named_fragment(page_template, ftype="$259")
             story_name = story.pop("$176")
             if self.DEBUG:
@@ -278,7 +281,7 @@ class KFX_EPUB_Content(object):
             if font_size != 16:
                 log.warning("Unexpected font size in PDF backed scale_fit page template: %s" % font_size)
 
-            parent_template_id = page_template.pop("$155", None) or page_template.pop("$598")
+            parent_template_id = self.get_location_id(page_template)
             story = self.get_named_fragment(page_template, ftype="$259")
             story_name = story.pop("$176")
             if self.DEBUG:
@@ -303,7 +306,7 @@ class KFX_EPUB_Content(object):
             if connected_pagination != 2:
                 log.error("Unexpected connected_pagination: %d" % connected_pagination)
 
-            parent_template_id = page_template.pop("$155", None) or page_template.pop("$598")
+            parent_template_id = self.get_location_id(page_template)
             story = self.get_named_fragment(page_template, ftype="$259")
             story_name = story.pop("$176")
             if self.DEBUG:
@@ -320,12 +323,16 @@ class KFX_EPUB_Content(object):
             self.check_empty(story, "story %s" % story_name)
 
         else:
-            book_part = self.new_book_part(opf_properties=set(page_spread.split()))
+            spread_type = page_spread.replace("rendition:", "").replace("page-spread-", "")
+            unique_section_name = "%s-%s" % (section_name, spread_type) if spread_type else section_name
+            book_part = self.new_book_part(
+                filename=self.SECTION_TEXT_FILEPATH % unique_section_name if RETAIN_SECTION_FILENAMES else None,
+                opf_properties=set(page_spread.split()))
             self.process_content(page_template, book_part.html, book_part, self.writing_mode, is_section=is_section)
             self.link_css_file(book_part, self.STYLES_CSS_FILEPATH)
 
             if parent_template_id is not None:
-                self.process_position(str(parent_template_id), 0, book_part.body())
+                self.process_position(parent_template_id, 0, book_part.body())
 
         self.check_empty(page_template, "Section %s page_template" % section_name)
 
@@ -672,8 +679,8 @@ class KFX_EPUB_Content(object):
                         activate_elem.set("class", "app-amzn-magnify")
 
                         activate_elem.set("data-app-amzn-magnify", json_serialize_compact(OD(
-                                "targetId", self.register_link_id(str(activate.pop("$163")), "magnify_target"),
-                                "sourceId", self.register_link_id(str(activate.pop("$474")), "magnify_source"),
+                                "targetId", self.register_link_id(activate.pop("$163"), "magnify_target"),
+                                "sourceId", self.register_link_id(activate.pop("$474"), "magnify_source"),
                                 "ordinal", ordinal)))
 
                         self.check_empty(activate, "%s activate" % self.content_context)
@@ -841,7 +848,7 @@ class KFX_EPUB_Content(object):
             self.add_content(content, content_elem, book_part, writing_mode)
 
         if "$754" in content:
-            self.register_link_id(str(content.pop("$754")), "main_content")
+            self.register_link_id(content.pop("$754"), "main_content")
 
         if "$683" in content:
             for annotation in content.pop("$683"):

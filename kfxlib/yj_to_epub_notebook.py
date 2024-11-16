@@ -71,7 +71,7 @@ class KFX_EPUB_Notebook(object):
             log.error("Unexpected nmdl.canvas width=%d height=%d ppi=%d" % (
                 nmdl_canvas_width, nmdl_canvas_height, nmdl_normalized_ppi))
 
-        book_part = self.new_book_part(filename=self.NOTEBOOK_TEXT_FILEPATH % section_name)
+        book_part = self.new_book_part(filename=self.SECTION_TEXT_FILEPATH % section_name)
         book_part.is_fxl = True
 
         book_part.nmdl_template_id = section.pop("nmdl.template_id", self.nmdl_template_id)
@@ -128,7 +128,7 @@ class KFX_EPUB_Notebook(object):
         nmdl_template_type = section.pop("nmdl.template_type")
         log.info("Notebook template: %s" % nmdl_template_type)
 
-        book_part = self.new_book_part(filename=self.NOTEBOOK_TEXT_FILEPATH % section_name)
+        book_part = self.new_book_part(filename=self.SECTION_TEXT_FILEPATH % section_name)
         book_part.is_fxl = True
         top_level_elem = book_part.html
         self.process_content(page_template, top_level_elem, book_part, self.writing_mode, is_section=True)

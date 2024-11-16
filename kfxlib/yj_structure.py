@@ -29,6 +29,7 @@ __copyright__ = "2016-2024, John Howell <jhowell@acm.org>"
 REPORT_KNOWN_PROBLEMS = None
 REPORT_NON_JPEG_JFIF_COVER = False
 REPORT_JPEG_VARIANTS = False
+DEBUG_PDF_PAGE_SIZE = False
 
 
 MAX_CONTENT_FRAGMENT_SIZE = 8192
@@ -585,13 +586,15 @@ class BookStructure(object):
                                 if img_format == "pdf":
                                     if (img_width and img_height and resource_width and resource_height and
                                             (numstr(img_width) != numstr(resource_width) or numstr(img_height) != numstr(resource_height))):
-                                        log.warning("Resource %s is %gx%g, PDF image %s page %d is %gx%g" % (
+                                        log.warning("Resource %s dimensions %gx%g, PDF image %s page %d is %gx%g" % (
                                             resource_name, resource_width, resource_height, location, page_num, img_width, img_height))
-                                        show_pdf_page_boxes(image_data, resource_name, page_num)
+
+                                        if DEBUG_PDF_PAGE_SIZE:
+                                            show_pdf_page_boxes(image_data, resource_name, page_num)
                                 else:
                                     if (img_width and img_height and resource_width and resource_height and
                                             (img_width != resource_width or img_height != resource_height)):
-                                        log.warning("Resource %s is %gx%g, image %s is %gx%g" % (
+                                        log.warning("Resource %s dimensions %gx%g, image %s is %gx%g" % (
                                             resource_name, resource_width, resource_height, location, img_width, img_height))
 
                                 if img_transparent and not self.is_magazine:
@@ -1256,61 +1259,6 @@ class BookStructure(object):
                 return True
 
         return False
-
-    def get_toc_entries(self):
-
-        class TocEntry(object):
-            def __init__(self, label, eid, eid_offset, children=None):
-                self.label = label
-                self.eid = eid
-                self.eid_offset = eid_offset
-                self.children = children
-
-        def process_toc_nav_unit(nav_unit, toc, heading_level):
-            if ion_type(nav_unit) is IonSymbol:
-                nav_unit = self.fragments.get(ftype="$393", fid=nav_unit)
-
-            if nav_unit is None:
-                return
-
-            nav_unit = unannotated(nav_unit)
-            nested_toc = []
-
-            for entry in nav_unit.get("$247", []):
-                process_toc_nav_unit(entry, nested_toc, heading_level + 1)
-
-            for entry_set in nav_unit.get("$248", []):
-                for entry in entry_set.get("$247", []):
-                    process_toc_nav_unit(entry, nested_toc, heading_level + 1)
-
-            label = nav_unit.get("$241", {}).get("$244", "")
-            eid = eid_offset = None
-
-            if "$246" in nav_unit:
-                position = nav_unit.get("$246")
-                eid = position.get("$155", None) or position.get("$598", None)
-                eid_offset = position.get("$143", 0)
-
-            if (not label) and (not eid):
-                toc.extend(nested_toc)
-            else:
-                toc.append(TocEntry(label, eid, eid_offset, nested_toc))
-
-        toc = []
-        fragment = self.fragments.get("$389")
-        if fragment is not None:
-            for book_navigation in fragment.value:
-                for nav_container in book_navigation.get("$392", []):
-                    if ion_type(nav_container) is IonSymbol:
-                        nav_container = self.fragments.get(ftype="$391", fid=nav_container)
-
-                    if nav_container is not None:
-                        nav_container = unannotated(nav_container)
-                        if nav_container.get("$235", None) == "$212":
-
-                            for nav_unit in nav_container.get("$247", []):
-                                process_toc_nav_unit(nav_unit, toc, 1)
-        return toc
 
     def get_ordered_image_resources(self):
         if not self.is_fixed_layout:

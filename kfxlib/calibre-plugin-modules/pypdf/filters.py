@@ -37,12 +37,13 @@ __author_email__ = "biziqe@mathieu.fenniak.net"
 import math
 import struct
 import zlib
+from base64 import a85decode
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from ._utils import (
-    b_,
-    deprecate_with_replacement,
+    WHITESPACES_AS_BYTES,
+    deprecate,
     deprecation_no_replacement,
     logger_warning,
     ord_,
@@ -80,14 +81,19 @@ def decompress(data: bytes) -> bytes:
     try:
         return zlib.decompress(data)
     except zlib.error:
-        d = zlib.decompressobj(zlib.MAX_WBITS | 32)
-        result_str = b""
-        for b in [data[i : i + 1] for i in range(len(data))]:
-            try:
-                result_str += d.decompress(b)
-            except zlib.error:
-                pass
-        return result_str
+        try:
+            # For larger files, use Decompress object to enable buffered reading
+            return zlib.decompressobj().decompress(data)
+        except zlib.error:
+            # If still failed, then try with increased window size
+            d = zlib.decompressobj(zlib.MAX_WBITS | 32)
+            result_str = b""
+            for b in [data[i : i + 1] for i in range(len(data))]:
+                try:
+                    result_str += d.decompress(b)
+                except zlib.error:
+                    pass
+            return result_str
 
 
 class FlateDecode:
@@ -111,9 +117,6 @@ class FlateDecode:
         Raises:
           PdfReadError:
         """
-        if "decodeParms" in kwargs:  # deprecated
-            deprecate_with_replacement("decodeParms", "parameters", "4.0.0")
-            decode_parms = kwargs["decodeParms"]
         if isinstance(decode_parms, ArrayObject):
             raise DeprecationError("decode_parms as ArrayObject is depreciated")
 
@@ -127,8 +130,8 @@ class FlateDecode:
                 pass  # Usually an array with a null object was read
         # predictor 1 == no predictor
         if predictor != 1:
-            # The /Columns param. has 1 as the default value; see ISO 32000,
-            # §7.4.4.3 LZWDecode and FlateDecode Parameters, Table 8
+            # /Columns, the number of samples in each row, has a default value of 1;
+            # §7.4.4.3, ISO 32000.
             DEFAULT_BITS_PER_COMPONENT = 8
             try:
                 columns = cast(int, decode_parms[LZW.COLUMNS].get_object())  # type: ignore
@@ -183,16 +186,19 @@ class FlateDecode:
             filter_byte = rowdata[0]
 
             if filter_byte == 0:
+                # PNG None Predictor
                 pass
             elif filter_byte == 1:
+                # PNG Sub Predictor
                 for i in range(bpp + 1, rowlength):
                     rowdata[i] = (rowdata[i] + rowdata[i - bpp]) % 256
             elif filter_byte == 2:
+                # PNG Up Predictor
                 for i in range(1, rowlength):
                     rowdata[i] = (rowdata[i] + prev_rowdata[i]) % 256
             elif filter_byte == 3:
+                # PNG Average Predictor
                 for i in range(1, bpp + 1):
-                    # left = 0
                     floor = prev_rowdata[i] // 2
                     rowdata[i] = (rowdata[i] + floor) % 256
                 for i in range(bpp + 1, rowlength):
@@ -200,12 +206,9 @@ class FlateDecode:
                     floor = (left + prev_rowdata[i]) // 2
                     rowdata[i] = (rowdata[i] + floor) % 256
             elif filter_byte == 4:
+                # PNG Paeth Predictor
                 for i in range(1, bpp + 1):
-                    # left = 0
-                    up = prev_rowdata[i]
-                    # up_left = 0
-                    paeth = up
-                    rowdata[i] = (rowdata[i] + paeth) % 256
+                    rowdata[i] = (rowdata[i] + prev_rowdata[i]) % 256
                 for i in range(bpp + 1, rowlength):
                     left = rowdata[i - bpp]
                     up = prev_rowdata[i]
@@ -285,7 +288,9 @@ class ASCIIHexDecode:
         index = 0
         while True:
             if index >= len(data):
-                logger_warning("missing EOD in ASCIIHexDecode, check if output is OK", __name__)
+                logger_warning(
+                    "missing EOD in ASCIIHexDecode, check if output is OK", __name__
+                )
                 break  # reach End Of String even if no EOD
             char = data[index : index + 1]
             if char == b">":
@@ -341,7 +346,9 @@ class RunLengthDecode:
         index = 0
         while True:
             if index >= len(data):
-                logger_warning("missing EOD in RunLengthDecode, check if output is OK", __name__)
+                logger_warning(
+                    "missing EOD in RunLengthDecode, check if output is OK", __name__
+                )
                 break  # reach End Of String even if no EOD
             length = data[index]
             index += 1
@@ -365,20 +372,18 @@ class LZWDecode:
     """
     Taken from:
 
-    http://www.java2s.com/Open-Source/Java-Document/PDF/PDF-
-    Renderer/com/sun/pdfview/decode/LZWDecode.java.htm
+    http://www.java2s.com/Open-Source/Java-Document/PDF/PDF-Renderer/com/sun/pdfview/decode/LZWDecode.java.htm
     """
 
     class Decoder:
+        STOP = 257
+        CLEARDICT = 256
+
         def __init__(self, data: bytes) -> None:
-            self.STOP = 257
-            self.CLEARDICT = 256
             self.data = data
             self.bytepos = 0
             self.bitpos = 0
-            self.dict = [""] * 4096
-            for i in range(256):
-                self.dict[i] = chr(i)
+            self.dict = [struct.pack("B", i) for i in range(256)] + [b""] * (4096 - 256)
             self.reset_dict()
 
         def reset_dict(self) -> None:
@@ -405,7 +410,7 @@ class LZWDecode:
                     self.bytepos = self.bytepos + 1
             return value
 
-        def decode(self) -> str:
+        def decode(self) -> bytes:
             """
             TIFF 6.0 specification explains in sufficient details the steps to
             implement the LZW encode() and decode() algorithms.
@@ -418,7 +423,7 @@ class LZWDecode:
               PdfReadError: If the stop code is missing
             """
             cW = self.CLEARDICT
-            baos = ""
+            baos = b""
             while True:
                 pW = cW
                 cW = self.next_code()
@@ -433,11 +438,11 @@ class LZWDecode:
                 else:
                     if cW < self.dictlen:
                         baos += self.dict[cW]
-                        p = self.dict[pW] + self.dict[cW][0]
+                        p = self.dict[pW] + self.dict[cW][0:1]
                         self.dict[self.dictlen] = p
                         self.dictlen += 1
                     else:
-                        p = self.dict[pW] + self.dict[pW][0]
+                        p = self.dict[pW] + self.dict[pW][0:1]
                         baos += p
                         self.dict[self.dictlen] = p
                         self.dictlen += 1
@@ -449,24 +454,43 @@ class LZWDecode:
             return baos
 
     @staticmethod
-    def decode(
+    def _decodeb(
         data: bytes,
         decode_parms: Optional[DictionaryObject] = None,
         **kwargs: Any,
-    ) -> str:
+    ) -> bytes:
         """
         Decode an LZW encoded data stream.
 
         Args:
-          data: bytes`` or ``str`` text to decode.
+          data: ``bytes`` or ``str`` text to decode.
           decode_parms: a dictionary of parameter values.
 
         Returns:
           decoded data.
         """
         # decode_parms is unused here
-
         return LZWDecode.Decoder(data).decode()
+
+    @staticmethod
+    def decode(
+        data: bytes,
+        decode_parms: Optional[DictionaryObject] = None,
+        **kwargs: Any,
+    ) -> str:  # deprecated
+        """
+        Decode an LZW encoded data stream.
+
+        Args:
+          data: ``bytes`` or ``str`` text to decode.
+          decode_parms: a dictionary of parameter values.
+
+        Returns:
+          decoded data.
+        """
+        # decode_parms is unused here
+        deprecate("LZWDecode.decode will return bytes instead of str in pypdf 6.0.0")
+        return LZWDecode.Decoder(data).decode().decode("latin-1")
 
 
 class ASCII85Decode:
@@ -478,29 +502,20 @@ class ASCII85Decode:
         decode_parms: Optional[DictionaryObject] = None,
         **kwargs: Any,
     ) -> bytes:
-        # decode_parms is unused here
+        """
+        Decode an Ascii85 encoded data stream.
 
+        Args:
+          data: ``bytes`` or ``str`` text to decode.
+          decode_parms: a dictionary of parameter values.
+
+        Returns:
+          decoded data.
+        """
         if isinstance(data, str):
-            data = data.encode("ascii")
-        group_index = b = 0
-        out = bytearray()
-        for char in data:
-            if ord("!") <= char <= ord("u"):
-                group_index += 1
-                b = b * 85 + (char - 33)
-                if group_index == 5:
-                    out += struct.pack(b">L", b)
-                    group_index = b = 0
-            elif char == ord("z"):
-                assert group_index == 0
-                out += b"\0\0\0\0"
-            elif char == ord("~"):
-                if group_index:
-                    for _ in range(5 - group_index):
-                        b = b * 85 + 84
-                    out += struct.pack(b">L", b)[: group_index - 1]
-                break
-        return bytes(out)
+            data = data.encode()
+        data = data.strip(WHITESPACES_AS_BYTES)
+        return a85decode(data, adobe=True, ignorechars=WHITESPACES_AS_BYTES)
 
 
 class DCTDecode:
@@ -526,7 +541,7 @@ class JPXDecode:
 
 
 class CCITParameters:
-    """TABLE 3.9 Optional parameters for the CCITTFaxDecode filter."""
+    """§7.4.6, optional parameters for the CCITTFaxDecode filter."""
 
     def __init__(self, K: int = 0, columns: int = 0, rows: int = 0) -> None:
         self.K = K
@@ -550,12 +565,12 @@ class CCITParameters:
 
 class CCITTFaxDecode:
     """
-    See 3.3.5 CCITTFaxDecode Filter (PDF 1.7 Standard).
+    §7.4.6, CCITTFaxDecode filter (ISO 32000).
 
     Either Group 3 or Group 4 CCITT facsimile (fax) encoding.
     CCITT encoding is bit-oriented, not byte-oriented.
 
-    See: TABLE 3.9 Optional parameters for the CCITTFaxDecode filter
+    §7.4.6, optional parameters for the CCITTFaxDecode filter.
     """
 
     @staticmethod
@@ -563,7 +578,7 @@ class CCITTFaxDecode:
         parameters: Union[None, ArrayObject, DictionaryObject, IndirectObject],
         rows: int,
     ) -> CCITParameters:
-        # TABLE 3.9 Optional parameters for the CCITTFaxDecode filter
+        # §7.4.6, optional parameters for the CCITTFaxDecode filter
         k = 0
         columns = 1728
         if parameters:
@@ -592,9 +607,6 @@ class CCITTFaxDecode:
         **kwargs: Any,
     ) -> bytes:
         # decode_parms is unused here
-        if "decodeParms" in kwargs:  # deprecated
-            deprecate_with_replacement("decodeParms", "parameters", "4.0.0")
-            decode_parms = kwargs["decodeParms"]
         if isinstance(decode_parms, ArrayObject):  # deprecated
             deprecation_no_replacement(
                 "decode_parms being an ArrayObject", removed_in="3.15.5"
@@ -649,7 +661,7 @@ class CCITTFaxDecode:
         return tiff_header + data
 
 
-def decode_stream_data(stream: Any) -> Union[bytes, str]:  # utils.StreamObject
+def decode_stream_data(stream: Any) -> bytes:  # utils.StreamObject
     """
     Decode the stream data based on the specified filters.
 
@@ -676,7 +688,7 @@ def decode_stream_data(stream: Any) -> Union[bytes, str]:  # utils.StreamObject
     decodparms = stream.get(SA.DECODE_PARMS, ({},) * len(filters))
     if not isinstance(decodparms, (list, tuple)):
         decodparms = (decodparms,)
-    data: bytes = b_(stream._data)
+    data: bytes = stream._data
     # If there is not data to decode we should not try to decode the data.
     if data:
         for filter_type, params in zip(filters, decodparms):
@@ -689,7 +701,7 @@ def decode_stream_data(stream: Any) -> Union[bytes, str]:  # utils.StreamObject
             elif filter_type in (FT.RUN_LENGTH_DECODE, FTA.RL):
                 data = RunLengthDecode.decode(data)
             elif filter_type in (FT.LZW_DECODE, FTA.LZW):
-                data = LZWDecode.decode(data, params)  # type: ignore
+                data = LZWDecode._decodeb(data, params)
             elif filter_type in (FT.ASCII_85_DECODE, FTA.A85):
                 data = ASCII85Decode.decode(data)
             elif filter_type == FT.DCT_DECODE:
@@ -700,9 +712,7 @@ def decode_stream_data(stream: Any) -> Union[bytes, str]:  # utils.StreamObject
                 height = stream.get(IA.HEIGHT, ())
                 data = CCITTFaxDecode.decode(data, params, height)
             elif filter_type == "/Crypt":
-                if "/Name" not in params and "/Type" not in params:
-                    pass
-                else:
+                if "/Name" in params or "/Type" in params:
                     raise NotImplementedError(
                         "/Crypt filter with /Name or /Type not supported yet"
                     )
@@ -710,12 +720,6 @@ def decode_stream_data(stream: Any) -> Union[bytes, str]:  # utils.StreamObject
                 # Unsupported filter
                 raise NotImplementedError(f"unsupported filter {filter_type}")
     return data
-
-
-def decodeStreamData(stream: Any) -> Union[str, bytes]:  # deprecated
-    """Deprecated. Use decode_stream_data."""
-    deprecate_with_replacement("decodeStreamData", "decode_stream_data", "4.0.0")
-    return decode_stream_data(stream)
 
 
 def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, Any]:
@@ -733,6 +737,8 @@ def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, 
     """
     from ._xobj_image_helpers import (
         Image,
+        UnidentifiedImageError,
+        _extended_image_frombytes,
         _get_imagemode,
         _handle_flate,
         _handle_jpx,
@@ -740,17 +746,17 @@ def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, 
     )
 
     # for error reporting
-    if (
-        hasattr(x_object_obj, "indirect_reference") and x_object_obj is None
-    ):  # pragma: no cover
+    if x_object_obj is None:  # pragma: no cover
         obj_as_text = x_object_obj.indirect_reference.__repr__()
     else:
         obj_as_text = x_object_obj.__repr__()
 
-    size = (x_object_obj[IA.WIDTH], x_object_obj[IA.HEIGHT])
+    size = (cast(int, x_object_obj[IA.WIDTH]), cast(int, x_object_obj[IA.HEIGHT]))
     data = x_object_obj.get_data()  # type: ignore
     if isinstance(data, str):  # pragma: no cover
         data = data.encode()
+    if len(data) % (size[0] * size[1]) == 1 and data[-1] == 0x0A:  # ie. '\n'
+        data = data[:-1]
     colors = x_object_obj.get("/Colors", 1)
     color_space: Any = x_object_obj.get("/ColorSpace", NullObject()).get_object()
     if isinstance(color_space, list) and len(color_space) == 1:
@@ -796,13 +802,16 @@ def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, 
         # I'm not sure if the following logic is correct.
         # There might not be any relationship between the filters and the
         # extension
-        if x_object_obj[SA.FILTER] in [[FT.LZW_DECODE], [FT.CCITT_FAX_DECODE]]:
+        if lfilters in (FT.LZW_DECODE, FT.CCITT_FAX_DECODE):
             extension = ".tiff"  # mime_type = "image/tiff"
             image_format = "TIFF"
         else:
             extension = ".png"  # mime_type = "image/png"
             image_format = "PNG"
-        img = Image.open(BytesIO(data), formats=("TIFF", "PNG"))
+        try:
+            img = Image.open(BytesIO(data), formats=("TIFF", "PNG"))
+        except UnidentifiedImageError:
+            img = _extended_image_frombytes(mode, size, data)
     elif lfilters == FT.DCT_DECODE:
         img, image_format, extension = Image.open(BytesIO(data)), "JPEG", ".jpg"
         # invert_color kept unchanged
@@ -819,7 +828,7 @@ def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, 
         )
     elif mode == "CMYK":
         img, image_format, extension, invert_color = (
-            Image.frombytes(mode, size, data),
+            _extended_image_frombytes(mode, size, data),
             "TIFF",
             ".tif",
             False,
@@ -828,7 +837,7 @@ def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, 
         raise PdfReadError(f"ColorSpace field not found in {x_object_obj}")
     else:
         img, image_format, extension, invert_color = (
-            Image.frombytes(mode, size, data),
+            _extended_image_frombytes(mode, size, data),
             "PNG",
             ".png",
             False,
@@ -849,6 +858,11 @@ def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, 
         and color_space[0].get_object() == "/Indexed"
     ):
         decode = None  # decode is meanless of Indexed
+    if (
+        isinstance(color_space, ArrayObject)
+        and color_space[0].get_object() == "/Separation"
+    ):
+        decode = [1.0, 0.0] * len(img.getbands())
     if decode is not None and not all(decode[i] == i % 2 for i in range(len(decode))):
         lut: List[int] = []
         for i in range(0, len(decode), 2):
@@ -882,10 +896,13 @@ def _xobj_to_image(x_object_obj: Dict[str, Any]) -> Tuple[Optional[str], bytes, 
     img_byte_arr = BytesIO()
     try:
         img.save(img_byte_arr, format=image_format)
-    except OSError:  # pragma: no cover
-        # odd error
+    except OSError:  # pragma: no cover  # covered with pillow 10.3
+        # in case of we convert to RGBA and then to PNG
+        img1 = img.convert("RGBA")
+        image_format = "PNG"
+        extension = ".png"
         img_byte_arr = BytesIO()
-        img.save(img_byte_arr, format=image_format)
+        img1.save(img_byte_arr, format=image_format)
     data = img_byte_arr.getvalue()
 
     try:  # temporary try/except until other fixes of images

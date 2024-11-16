@@ -26,8 +26,8 @@ class KFXInput(InputFormatPlugin):
     name = "KFX Input"
     author = "jhowell"
     file_types = {"azw8", "kfx", "kfx-zip", "kpf"}
-    version = (2, 15, 0)
-    minimum_calibre_version = (5, 0, 0)
+    version = (2, 17, 0)
+    minimum_calibre_version = (5, 0, 0)     # Python 3.8.5
     supported_platforms = ["windows", "osx", "linux"]
     description = "Convert from Amazon KFX format"
 
@@ -150,6 +150,7 @@ class KFXInput(InputFormatPlugin):
         return "?"
 
     def cli_main(self, argv):
+        from calibre_plugins.kfx_input.config import config_split_landscape_comic_images
         from calibre_plugins.kfx_input.kfxlib import (file_write_binary, set_logger, YJ_Book)
 
         self.cli = True
@@ -207,7 +208,7 @@ class KFXInput(InputFormatPlugin):
 
         if args.cbz:
             if book.is_image_based_fixed_layout:
-                cbz_data = book.convert_to_cbz()
+                cbz_data = book.convert_to_cbz(split_landscape_comic_images=config_split_landscape_comic_images())
                 output_filename = self.get_output_filename(args, ".cbz")
                 file_write_binary(output_filename, cbz_data)
                 log.info("Converted book images to CBZ file %s" % output_filename)
@@ -216,7 +217,7 @@ class KFXInput(InputFormatPlugin):
 
         if args.pdf:
             if book.is_image_based_fixed_layout:
-                pdf_data = book.convert_to_pdf()
+                pdf_data = book.convert_to_pdf(split_landscape_comic_images=config_split_landscape_comic_images())
                 output_filename = self.get_output_filename(args, ".pdf")
                 file_write_binary(output_filename, pdf_data)
 

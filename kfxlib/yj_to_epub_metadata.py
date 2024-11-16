@@ -261,6 +261,9 @@ class KFX_EPUB_Metadata(object):
             self.scrolled_continuous = True
         elif cat_key == "kindle_capability_metadata/yj_guided_view_native":
             self.guided_view_native = True
+        elif cat_key == "kindle_capability_metadata/yj_has_text_popups":
+            self.set_book_type("children")
+            self.region_magnification = True
         elif cat_key == "kindle_capability_metadata/yj_publisher_panels":
             self.set_book_type("comic")
             self.region_magnification = True

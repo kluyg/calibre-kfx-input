@@ -3,13 +3,12 @@ from math import ceil
 from typing import Any, Dict, List, Tuple, Union, cast
 
 from ._codecs import adobe_glyphs, charset_encoding
-from ._utils import b_, logger_error, logger_warning
+from ._utils import logger_error, logger_warning
 from .generic import (
     DecodedStreamObject,
     DictionaryObject,
-    IndirectObject,
-    NullObject,
     StreamObject,
+    is_null_or_none,
 )
 
 
@@ -113,17 +112,24 @@ unknown_char_map: Tuple[str, float, Union[str, Dict[int, str]], Dict[Any, Any]] 
 _predefined_cmap: Dict[str, str] = {
     "/Identity-H": "utf-16-be",
     "/Identity-V": "utf-16-be",
-    "/GB-EUC-H": "gbk",  # TBC
-    "/GB-EUC-V": "gbk",  # TBC
-    "/GBpc-EUC-H": "gb2312",  # TBC
-    "/GBpc-EUC-V": "gb2312",  # TBC
-    "/GBK-EUC-H": "gbk",  # TBC
-    "/GBK-EUC-V": "gbk",  # TBC
+    "/GB-EUC-H": "gbk",
+    "/GB-EUC-V": "gbk",
+    "/GBpc-EUC-H": "gb2312",
+    "/GBpc-EUC-V": "gb2312",
+    "/GBK-EUC-H": "gbk",
+    "/GBK-EUC-V": "gbk",
     "/GBK2K-H": "gb18030",
     "/GBK2K-V": "gb18030",
+    "/ETen-B5-H": "cp950",
+    "/ETen-B5-V": "cp950",
+    "/ETenms-B5-H": "cp950",
+    "/ETenms-B5-V": "cp950",
+    "/UniCNS-UTF16-H": "utf-16-be",
+    "/UniCNS-UTF16-V": "utf-16-be",
+    "/UniGB-UTF16-H": "gb18030",
+    "/UniGB-UTF16-V": "gb18030",
     # UCS2 in code
 }
-
 
 # manually extracted from http://mirrors.ctan.org/fonts/adobe/afm/Adobe-Core35_AFMs-229.tar.gz
 _default_fonts_space_width: Dict[str, int] = {
@@ -253,8 +259,8 @@ def prepare_cm(ft: DictionaryObject) -> bytes:
     tu = ft["/ToUnicode"]
     cm: bytes
     if isinstance(tu, StreamObject):
-        cm = b_(cast(DecodedStreamObject, ft["/ToUnicode"]).get_data())
-    elif isinstance(tu, str) and tu.startswith("/Identity"):
+        cm = cast(DecodedStreamObject, ft["/ToUnicode"]).get_data()
+    else:  # if (tu is None) or cast(str, tu).startswith("/Identity"):
         # the full range 0000-FFFF will be processed
         cm = b"beginbfrange\n<0000> <0001> <0000>\nendbfrange"
     if isinstance(cm, str):
@@ -443,34 +449,27 @@ def compute_space_width(
             en: int = cast(int, ft["/LastChar"])
             if st > space_code or en < space_code:
                 raise Exception("Not in range")
-            if w[space_code - st] == 0:
+            if w[space_code - st].get_object() == 0:
                 raise Exception("null width")
-            sp_width = w[space_code - st]
+            sp_width = w[space_code - st].get_object()
         except Exception:
             if "/FontDescriptor" in ft and "/MissingWidth" in cast(
                 DictionaryObject, ft["/FontDescriptor"]
             ):
-                sp_width = ft["/FontDescriptor"]["/MissingWidth"]  # type: ignore
+                sp_width = ft["/FontDescriptor"]["/MissingWidth"].get_object()  # type: ignore
             else:
                 # will consider width of char as avg(width)/2
                 m = 0
                 cpt = 0
-                for x in w:
-                    if x > 0:
-                        m += x
+                for xx in w:
+                    xx = xx.get_object()
+                    if xx > 0:
+                        m += xx
                         cpt += 1
                 sp_width = m / max(1, cpt) / 2
 
-    if isinstance(sp_width, IndirectObject):
-        # According to
-        # 'Table 122 - Entries common to all font descriptors (continued)'
-        # the MissingWidth should be a number, but according to #2286 it can
-        # be an indirect object
-        obj = sp_width.get_object()
-        if obj is None or isinstance(obj, NullObject):
-            return 0.0
-        return obj  # type: ignore
-
+    if is_null_or_none(sp_width):
+        sp_width = 0.0
     return sp_width
 
 
@@ -483,8 +482,9 @@ def type1_alternative(
     if "/FontDescriptor" not in ft:
         return map_dict, space_code, int_entry
     ft_desc = cast(DictionaryObject, ft["/FontDescriptor"]).get("/FontFile")
-    if ft_desc is None:
+    if is_null_or_none(ft_desc):
         return map_dict, space_code, int_entry
+    assert ft_desc is not None, "mypy"
     txt = ft_desc.get_object().get_data()
     txt = txt.split(b"eexec\n")[0]  # only clear part
     txt = txt.split(b"/Encoding")[1]  # to get the encoding part

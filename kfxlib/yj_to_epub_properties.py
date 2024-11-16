@@ -1927,16 +1927,27 @@ class KFX_EPUB_Properties(object):
                 elem.tag = "h" + kfx_heading_level
                 inherited_properties.pop("font-size")
                 inherited_properties.pop("font-weight")
-                inherited_properties.pop("margin-top")
-                inherited_properties.pop("margin-bottom")
+
+                if sty.get("writing-mode", "horizontal-tb") == "horizontal-tb":
+                    inherited_properties.pop("margin-top")
+                    inherited_properties.pop("margin-bottom")
+                else:
+                    inherited_properties.pop("margin-left")
+                    inherited_properties.pop("margin-right")
 
             elif "figure" in kfx_layout_hints and contains_image and not self.epub2_desired:
                 elem.tag = "figure"
-                inherited_properties.update({"margin-top": "1em", "margin-bottom": "1em"}, replace=True)
+                if sty.get("writing-mode", "horizontal-tb") == "horizontal-tb":
+                    inherited_properties.update({"margin-top": "1em", "margin-bottom": "1em"}, replace=True)
+                else:
+                    inherited_properties.update({"margin-left": "1em", "margin-right": "1em"}, replace=True)
 
             elif contains_text and not contains_block_elem:
                 elem.tag = "p"
-                inherited_properties.update({"margin-top": "1em", "margin-bottom": "1em"}, replace=True)
+                if sty.get("writing-mode", "horizontal-tb") == "horizontal-tb":
+                    inherited_properties.update({"margin-top": "1em", "margin-bottom": "1em"}, replace=True)
+                else:
+                    inherited_properties.update({"margin-left": "1em", "margin-right": "1em"}, replace=True)
 
         if split_value(sty.get("font-size", ""))[1] == "em":
             inherited_properties["font-size"] = "1em"

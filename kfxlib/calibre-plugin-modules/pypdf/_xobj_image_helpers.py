@@ -2,11 +2,11 @@
 
 import sys
 from io import BytesIO
-from typing import Any, List, Tuple, Union, cast
+from typing import Any, List, Literal, Tuple, Union, cast
 
 from ._utils import check_if_whitespace_only, logger_warning
 from .constants import ColorSpaces
-from .errors import PdfReadError
+from .errors import EmptyImageDataError, PdfReadError
 from .generic import (
     ArrayObject,
     DecodedStreamObject,
@@ -15,13 +15,6 @@ from .generic import (
     NullObject,
 )
 
-if sys.version_info[:2] >= (3, 8):
-    from typing import Literal
-else:
-    # PEP 586 introduced typing.Literal with Python 3.8
-    # For older Python versions, the backport typing_extensions is necessary:
-    from typing_extensions import Literal
-
 if sys.version_info[:2] >= (3, 10):
     from typing import TypeAlias
 else:
@@ -29,7 +22,7 @@ else:
 
 
 try:
-    from PIL import Image
+    from PIL import Image, UnidentifiedImageError  # noqa: F401
 except ImportError:
     raise ImportError(
         "pillow is required to do image extraction. "
@@ -73,9 +66,7 @@ def _get_imagemode(
         color_components = cast(int, icc_profile["/N"])
         color_space = icc_profile.get("/Alternate", "")
     elif color_space[0] == "/Indexed":
-        color_space = color_space[1]
-        if isinstance(color_space, IndirectObject):
-            color_space = color_space.get_object()
+        color_space = color_space[1].get_object()
         mode2, invert_color = _get_imagemode(
             color_space, color_components, prev_mode, depth + 1
         )
@@ -125,6 +116,44 @@ def _get_imagemode(
     return mode, mode == "CMYK"
 
 
+def bits2byte(data: bytes, size: Tuple[int, int], bits: int) -> bytes:
+    mask = (1 << bits) - 1
+    nbuff = bytearray(size[0] * size[1])
+    by = 0
+    bit = 8 - bits
+    for y in range(size[1]):
+        if bit != 8 - bits:
+            by += 1
+            bit = 8 - bits
+        for x in range(size[0]):
+            nbuff[y * size[0] + x] = (data[by] >> bit) & mask
+            bit -= bits
+            if bit < 0:
+                by += 1
+                bit = 8 - bits
+    return bytes(nbuff)
+
+
+def _extended_image_frombytes(
+    mode: str, size: Tuple[int, int], data: bytes
+) -> Image.Image:
+    try:
+        img = Image.frombytes(mode, size, data)
+    except ValueError as exc:
+        nb_pix = size[0] * size[1]
+        data_length = len(data)
+        if data_length == 0:
+            raise EmptyImageDataError(
+                "Data is 0 bytes, cannot process an image from empty data."
+            ) from exc
+        if data_length % nb_pix != 0:
+            raise exc
+        k = nb_pix * len(mode) / data_length
+        data = b"".join([bytes((x,) * int(k)) for x in data])
+        img = Image.frombytes(mode, size, data)
+    return img
+
+
 def _handle_flate(
     size: Tuple[int, int],
     data: bytes,
@@ -137,24 +166,6 @@ def _handle_flate(
     Process image encoded in flateEncode
     Returns img, image_format, extension, color inversion
     """
-
-    def bits2byte(data: bytes, size: Tuple[int, int], bits: int) -> bytes:
-        mask = (2 << bits) - 1
-        nbuff = bytearray(size[0] * size[1])
-        by = 0
-        bit = 8 - bits
-        for y in range(size[1]):
-            if (bit != 0) and (bit != 8 - bits):
-                by += 1
-                bit = 8 - bits
-            for x in range(size[0]):
-                nbuff[y * size[0] + x] = (data[by] >> bit) & mask
-                bit -= bits
-                if bit < 0:
-                    by += 1
-                    bit = 8 - bits
-        return bytes(nbuff)
-
     extension = ".png"  # mime_type = "image/png"
     image_format = "PNG"
     lookup: Any
@@ -168,7 +179,7 @@ def _handle_flate(
     elif mode == "4bits":
         mode = "P"
         data = bits2byte(data, size, 4)
-    img = Image.frombytes(mode, size, data)
+    img = _extended_image_frombytes(mode, size, data)
     if color_space == "/Indexed":
         from .generic import TextStringObject
 
@@ -276,13 +287,15 @@ def _handle_jpx(
     if img1.mode == "RGBA" and mode == "RGB":
         mode = "RGBA"
     # we need to convert to the good mode
-    try:
-        if img1.mode != mode:
-            img = Image.frombytes(mode, img1.size, img1.tobytes())
-        else:
-            img = img1
-    except OSError:
+    if img1.mode == mode or {img1.mode, mode} == {"L", "P"}:  # compare (unordered) sets
+        # L,P are indexed modes which should not be changed.
+        img = img1
+    elif {img1.mode, mode} == {"RGBA", "CMYK"}:
+        # RGBA / CMYK are 4bytes encoding where
+        # the encoding should be corrected
         img = Image.frombytes(mode, img1.size, img1.tobytes())
+    else:  # pragma: no cover
+        img = img1.convert(mode)
     # for CMYK conversion :
     # https://stcom/questions/38855022/conversion-from-cmyk-to-rgb-with-pillow-is-different-from-that-of-photoshop
     # not implemented for the moment as I need to get properly the ICC

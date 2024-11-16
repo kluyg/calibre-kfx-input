@@ -464,9 +464,7 @@ class KpfBook(object):
                     if fk == "$161" and isstring(fv):
                         fv = IS(FORMAT_SYMBOLS[fv])
 
-                    if (not self.retain_yj_locals) and (
-                            fk.startswith("yj.authoring.") or fk.startswith("yj.conversion.") or
-                            fk.startswith("yj.print.") or fk.startswith("yj.semantics.")):
+                    if (not self.retain_yj_locals) and re.match(r"^yj\.(authoring|conversion|print|semantics)\.", fk):
                         continue
 
                     if (self.is_illustrated_layout and fragment.ftype == "$260" and container == "$141" and

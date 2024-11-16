@@ -1,5 +1,7 @@
 from typing import Any, Optional, Tuple, Union
 
+from ._base import is_null_or_none
+
 
 class Fit:
     def __init__(
@@ -9,8 +11,7 @@ class Fit:
 
         self.fit_type = NameObject(fit_type)
         self.fit_args = [
-            NullObject() if a is None or isinstance(a, NullObject) else FloatObject(a)
-            for a in fit_args
+            NullObject() if is_null_or_none(a) else FloatObject(a) for a in fit_args
         ]
 
     @classmethod
@@ -21,7 +22,7 @@ class Fit:
         zoom: Optional[float] = None,
     ) -> "Fit":
         """
-        Display the page designated by page, with the coordinates (left , top)
+        Display the page designated by page, with the coordinates (left, top)
         positioned at the upper-left corner of the window and the contents
         of the page magnified by the factor zoom.
 
@@ -56,7 +57,7 @@ class Fit:
     @classmethod
     def fit_horizontally(cls, top: Optional[float] = None) -> "Fit":
         """
-        Display the page designated by page , with the vertical coordinate top
+        Display the page designated by page, with the vertical coordinate top
         positioned at the top edge of the window and the contents of the page
         magnified just enough to fit the entire width of the page within the
         window.
@@ -85,7 +86,7 @@ class Fit:
         top: Optional[float] = None,
     ) -> "Fit":
         """
-        Display the page designated by page , with its contents magnified
+        Display the page designated by page, with its contents magnified
         just enough to fit the rectangle specified by the coordinates
         left, bottom, right, and top entirely within the window
         both horizontally and vertically.
@@ -111,7 +112,7 @@ class Fit:
     @classmethod
     def fit_box(cls) -> "Fit":
         """
-        Display the page designated by page , with its contents magnified just
+        Display the page designated by page, with its contents magnified just
         enough to fit its bounding box entirely within the window both
         horizontally and vertically.
 
@@ -124,7 +125,7 @@ class Fit:
     @classmethod
     def fit_box_horizontally(cls, top: Optional[float] = None) -> "Fit":
         """
-        Display the page designated by page , with the vertical coordinate top
+        Display the page designated by page, with the vertical coordinate top
         positioned at the top edge of the window and the contents of the page
         magnified just enough to fit the entire width of its bounding box
         within the window.

@@ -28,6 +28,7 @@ from .message_logging import log
 
 try:
     from calibre.constants import numeric_version as calibre_numeric_version
+    from calibre.utils.config_base import tweaks
 except ImportError:
     calibre_numeric_version = None
 
@@ -309,7 +310,11 @@ def urlrelpath(url, ref_from=None, working_dir=None, quote=True):
     if ref_from is not None:
         working_dir = dirname(ref_from)
 
-    purl = urllib.parse.urlparse(url, INTERNAL_FILE_SCHEME)
+    try:
+        purl = urllib.parse.urlparse(url, INTERNAL_FILE_SCHEME)
+    except Exception:
+        return url
+
     if purl.scheme != INTERNAL_FILE_SCHEME or purl.netloc != "":
         return url
 
@@ -404,6 +409,9 @@ def wine_user_dir(local_appdata=False, appdata=False):
 
 
 def wineprefix():
+    kfx_output_wineprefix = tweaks.get("kfx_output_wineprefix")
+    if kfx_output_wineprefix:
+        return kfx_output_wineprefix
     return os.getenv("WINEPREFIX") or os.path.join(os.getenv("HOME"), ".wine")
 
 
@@ -421,20 +429,6 @@ def wine_userreg():
             "Wine registry file %s not found. Ensure that Wine is correctly installed and that calibre is not "
             "installed within a separate container.") % userreg)
     return userreg
-
-
-def wine_arch():
-    with io.open(wine_userreg(), "r") as file:
-        for line in file:
-            if line.startswith("#arch"):
-                if "64" in line:
-                    return "64"
-                else:
-                    return "32"
-
-
-def wine_executable():
-    return "wine64" if wine_arch() == "64" else "wine"
 
 
 def unicode_argv(argv):

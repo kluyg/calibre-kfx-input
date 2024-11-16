@@ -106,17 +106,17 @@ class YJ_Book(BookStructure, BookPosLoc, BookMetadata, KpfBook):
         self.final_actions()
         return result
 
-    def convert_to_cbz(self):
+    def convert_to_cbz(self, split_landscape_comic_images=False):
         from .yj_to_image_book import KFX_IMAGE_BOOK
         self.decode_book()
-        result = KFX_IMAGE_BOOK(self).convert_book_to_cbz()
+        result = KFX_IMAGE_BOOK(self).convert_book_to_cbz(split_landscape_comic_images)
         self.final_actions()
         return result
 
-    def convert_to_pdf(self):
+    def convert_to_pdf(self, split_landscape_comic_images=False):
         from .yj_to_image_book import KFX_IMAGE_BOOK
         self.decode_book()
-        result = KFX_IMAGE_BOOK(self).convert_book_to_pdf()
+        result = KFX_IMAGE_BOOK(self).convert_book_to_pdf(split_landscape_comic_images)
         self.final_actions()
         return result
 

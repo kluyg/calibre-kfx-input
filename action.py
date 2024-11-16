@@ -19,6 +19,7 @@ from calibre.utils.logging import (ANSIStream, GUILog)
 
 from calibre_plugins.kfx_input import (get_symbol_catalog_filename, KFXInput)
 from calibre_plugins.kfx_input.action_base import (ActionFromKFX, get_icons)
+from calibre_plugins.kfx_input.config import config_split_landscape_comic_images
 from calibre_plugins.kfx_input.kfxlib import (file_write_binary, KFXDRMError, set_logger, YJ_Book)
 
 
@@ -248,19 +249,25 @@ class FromKFXAction(InterfaceAction):
 
             elif to_fmt == "cbz":
                 if book.is_image_based_fixed_layout:
-                    cbz_data = book.convert_to_cbz()
-                    output_filename = PersistentTemporaryFile(".cbz").name
-                    file_write_binary(output_filename, cbz_data)
-                    log.info(msg("Converted book images to CBZ"))
+                    cbz_data = book.convert_to_cbz(split_landscape_comic_images=config_split_landscape_comic_images())
+                    if cbz_data:
+                        output_filename = PersistentTemporaryFile(".cbz").name
+                        file_write_binary(output_filename, cbz_data)
+                        log.info(msg("Converted book images to CBZ"))
+                    else:
+                        log.error(msg("Failed to create CBZ format"))
                 else:
                     log.error(msg("Book format does not support CBZ conversion - must be image based fixed-layout"))
 
             if to_fmt == "pdf":
                 if book.is_image_based_fixed_layout:
-                    pdf_data = book.convert_to_pdf()
-                    output_filename = PersistentTemporaryFile(".pdf").name
-                    file_write_binary(output_filename, pdf_data)
-                    log.info(msg("Extracted PDF content" if book.has_pdf_resource else "Converted book images to PDF"))
+                    pdf_data = book.convert_to_pdf(split_landscape_comic_images=config_split_landscape_comic_images())
+                    if pdf_data:
+                        output_filename = PersistentTemporaryFile(".pdf").name
+                        file_write_binary(output_filename, pdf_data)
+                        log.info(msg("Extracted PDF content" if book.has_pdf_resource else "Converted book images to PDF"))
+                    else:
+                        log.error(msg("Failed to create PDF format"))
                 else:
                     log.error(msg("Book format does not support PDF conversion - must be image based fixed-layout"))
             elif book.has_pdf_resource:
@@ -283,16 +290,18 @@ class FromKFXAction(InterfaceAction):
 
         except KFXDRMError:
             from calibre.gui2.dialogs.drm_error import DRMErrorMessage
-            return DRMErrorMessage(self.gui).exec()
+            set_logger()
+            wait_dialog.hide()
+            DRMErrorMessage(self.gui).exec()
 
         except Exception as e:
             traceback.print_exc()
+            set_logger()
+            wait_dialog.hide()
             error_dialog(
                 self.gui, "Unhandled exception", repr(e),
                 det_msg=clean_log(log.html) + add_text_to_html(repr(e)) + add_text_to_html(traceback.format_exc()),
                 show=True)
-
-        wait_dialog.hide()
 
     def report_version(self, log):
         try:
